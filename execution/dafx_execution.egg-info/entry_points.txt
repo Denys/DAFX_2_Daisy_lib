@@ -1,0 +1,2 @@
+[console_scripts]
+dafx-cli = dafx_execution.bin.cli:main

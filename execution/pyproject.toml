@@ -1,0 +1,81 @@
+[build-system]
+requires = ["setuptools >= 65.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dafx-execution"
+version = "0.1.0"
+description = "Python execution scripts for DAFX-to-DaisySP library"
+authors = [
+    {name = "DAFX Team", email = "dafx@example.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+dependencies = [
+    "click>=8.0.0",
+    "rich>=13.0.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "soundfile>=0.12.0",
+    "structlog>=23.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-benchmark>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+dafx-cli = "dafx_execution.bin.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/dafx/dafx_2_daisy_lib"
+"Bug Tracker" = "https://github.com/dafx/dafx_2_daisy_lib/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["dafx_execution*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+strict = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --cov=dafx_execution --cov-report=term-missing"
