@@ -6,13 +6,13 @@
 //
 // ~~~~
 // void Init(float sample_rate);
-// float Process(float in);
-// void SetDrive(float drive);
-// void SetBias(float bias);
-// void SetDistortion(float dist);
-// void SetHighPassPole(float rh);
-// void SetLowPassPole(float rl);
-// void SetMix(float mix);
+// float Process(const float &in);
+// void SetDrive(const float &drive);
+// void SetBias(const float &bias);
+// void SetDistortion(const float &dist);
+// void SetHighPassPole(const float &rh);
+// void SetLowPassPole(const float &rl);
+// void SetMix(const float &mix);
 // ~~~~
 #pragma once
 #ifndef DSY_TUBE_H
@@ -28,14 +28,14 @@ public:
 
     void Init(float sample_rate);
 
-    float Process(float in);
+    float Process(const float &in);
 
-    inline void SetDrive(float drive) { drive_ = drive; }
-    inline void SetBias(float bias) { bias_ = bias; }
-    inline void SetDistortion(float dist) { dist_ = dist; }
-    inline void SetHighPassPole(float rh) { rh_ = rh; }
-    inline void SetLowPassPole(float rl) { rl_ = rl; }
-    inline void SetMix(float mix) { mix_ = mix; }
+    inline void SetDrive(const float &drive) { drive_ = drive; }
+    inline void SetBias(const float &bias) { bias_ = bias; }
+    inline void SetDistortion(const float &dist) { dist_ = dist; }
+    inline void SetHighPassPole(const float &rh) { rh_ = rh; }
+    inline void SetLowPassPole(const float &rl) { rl_ = rl; }
+    inline void SetMix(const float &mix) { mix_ = mix; }
 
 private:
     float drive_;
@@ -52,9 +52,9 @@ private:
     float lp_xnm1_;
     float lp_ynm1_;
 
-    float ProcessWaveshaper(float in);
-    float ProcessHighPass(float in);
-    float ProcessLowPass(float in);
+    float ProcessWaveshaper(const float &in);
+    float ProcessHighPass(const float &in);
+    float ProcessLowPass(const float &in);
 };
 
 } // namespace daisysp

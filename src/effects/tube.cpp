@@ -20,7 +20,7 @@ void Tube::Init(float sample_rate)
     lp_ynm1_ = 0.0f;
 }
 
-float Tube::ProcessWaveshaper(float in)
+float Tube::ProcessWaveshaper(const float &in)
 {
     float q = in * drive_;
 
@@ -44,7 +44,7 @@ float Tube::ProcessWaveshaper(float in)
     }
 }
 
-float Tube::ProcessHighPass(float in)
+float Tube::ProcessHighPass(const float &in)
 {
     float rh_sq = rh_ * rh_;
     float out = in - 2.0f * hp_xnm1_ + hp_xnm2_
@@ -58,7 +58,7 @@ float Tube::ProcessHighPass(float in)
     return out;
 }
 
-float Tube::ProcessLowPass(float in)
+float Tube::ProcessLowPass(const float &in)
 {
     float out = (1.0f - rl_) * in + rl_ * lp_ynm1_;
     lp_xnm1_ = in;
@@ -66,7 +66,7 @@ float Tube::ProcessLowPass(float in)
     return out;
 }
 
-float Tube::Process(float in)
+float Tube::Process(const float &in)
 {
     float z = ProcessWaveshaper(in);
     float y = mix_ * z + (1.0f - mix_) * in;
