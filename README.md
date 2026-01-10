@@ -201,6 +201,69 @@ DAFX_2_Daisy_lib/
 ├── CHECKPOINT.md         # Project status tracking
 └── README.md             # This file
 ```
+```mermaid
+flowchart LR
+
+  %% ===== Root =====
+  A[DAFX_2_Daisy_lib/]:::root
+
+  %% ===== Top-level groups =====
+  subgraph TOP["Top Level"]
+    direction TB
+    SRC[src/]:::folderMain
+    TESTS[tests/]:::folder
+    EXAMPLES[examples/]:::folder
+    DOCS[docs/]:::folder
+    PLANS[plans/]:::folder
+    MATLAB[DAFX-MATLAB/]:::folderMain
+  end
+
+  subgraph FILES["Project Files"]
+    direction LR
+    CMAKE[CMakeLists.txt]:::fileKey
+    CHECKPOINT[CHECKPOINT.md]:::file
+    README[README.md]:::fileKey
+  end
+
+  %% Root connections
+  A --> TOP
+  A --> FILES
+
+  %% ===== src/ panel (rotated clockwise) =====
+  subgraph SRC_PANEL["src/ - modules (Algorithm Categories)"]
+    direction LR
+    EFFECTS["effects/<br/>(tube, wahwah…)"]:::catAnalog
+    FILTERS["filters/<br/>(shelving, peak EQ)"]:::catFilters
+    DYNAMICS["dynamics/<br/>(noise gate)"]:::catDyn
+    MODULATION["modulation/<br/>(vibrato, ring mod)"]:::catMod
+    SPATIAL["spatial/<br/>(panning)"]:::catSpatial
+    ANALYSIS["analysis/<br/>(planned)"]:::catAnalysis
+    UTILITY["utility/<br/>(planned)"]:::moduleNeutral
+  end
+
+  %% Expand src/
+  SRC --> SRC_PANEL
+
+  %% ===== Styling =====
+  classDef root fill:#2c3e50,color:#ffffff,stroke:#1a252f,stroke-width:2px
+
+  %% Top-level project structure
+  classDef folder fill:#3498db,color:#ffffff,stroke:#1f6fa5
+  classDef folderMain fill:#2980b9,color:#ffffff,stroke:#1f6fa5,stroke-width:2px
+
+  %% Algorithm Category palette (match DAFX diagram)
+  classDef catFilters  fill:#3498db,color:#ffffff,stroke:#1f6fa5,stroke-width:2px
+  classDef catMod      fill:#9b59b6,color:#ffffff,stroke:#6d3f86,stroke-width:2px
+  classDef catDyn      fill:#e74c3c,color:#ffffff,stroke:#b03a2e,stroke-width:2px
+  classDef catSpatial  fill:#1abc9c,color:#ffffff,stroke:#148f77,stroke-width:2px
+  classDef catAnalysis fill:#95a5a6,color:#000000,stroke:#707b7c,stroke-width:2px
+  classDef catAnalog   fill:#e67e22,color:#ffffff,stroke:#af601a,stroke-width:2px
+  classDef moduleNeutral fill:#bdc3c7,color:#2c3e50,stroke:#95a5a6,stroke-width:2px
+
+  %% Files
+  classDef file fill:#ecf0f1,color:#2c3e50,stroke:#bdc3c7
+  classDef fileKey fill:#fdf2e9,color:#6e2c00,stroke:#e59866,stroke-width:2px
+```
 
 ## Testing
 
