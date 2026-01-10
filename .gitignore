@@ -1,0 +1,21 @@
+# Intermediates
+.tmp/
+
+# Credentials and tokens
+credentials.json
+token.json
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# .pdf files
+DAFX- Digital Audio Effects - 2ed 2011 - Udo Zölzer.pdf

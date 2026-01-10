@@ -1,0 +1,349 @@
+
+
+function magphasresponse(h) 
+% Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+FS=40000;
+fosi=10;
+if nargin==0
+  h=[-.1 .15 .3 .15 -.1];
+end
+hmax=max(h);
+hmin=min(h);
+dh=hmax-hmin;
+hmax=hmax+.1*dh;
+hmin=hmin-.1*dh;
+
+N=length(h);
+% denominator polynomial:
+a=zeros(1,N);
+a(1)=1;
+
+subplot(221)
+stem(0:N-1,h)
+axis([-1 N, hmin hmax])
+title('a) Impulse Response h(n)','Fontsize',fosi);
+xlabel('n \rightarrow','Fontsize',fosi)
+grid on;
+
+subplot(223)
+zplane(h,a)
+title('c) Pole/Zero plot','Fontsize',fosi);
+xlabel('Re(z)','Fontsize',fosi)
+ylabel('Im(z)','Fontsize',fosi)
+
+subplot(222)
+[H,F] =freqz(h,a,1024,'whole',FS);
+plot(F/1000,abs(H))
+xlabel('f in kHz  \rightarrow','Fontsize',fosi);
+ylabel('|H(f)| \rightarrow','Fontsize',fosi);
+title('b) Magnitude response |H(f)|','Fontsize',fosi);
+grid on;
+
+subplot(224)
+plot(F/1000,unwrap(angle(H))/pi)
+xlabel('f  in kHz \rightarrow','Fontsize',fosi)
+ylabel('\angle H(f)/\pi \rightarrow','Fontsize',fosi)
+title('d) Phase Response \angle H(f)','Fontsize',fosi);
+grid on;
+___________________________________________________________________________
+
+%Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+[signal,FS,NBITS]=wavread('ton2');
+subplot(211);plot(signal);
+title('Signal x(n)');
+ylabel('x(n) \rightarrow');
+xlabel('n \rightarrow');
+axis([0 length(signal) -1 1]);
+subplot(212);
+waterfspec(signal,256,256,512,FS,20,-100);
+___________________________________________________________________________
+
+%Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+x=[-1 -0.5 1 2 2 1 0.5 -1];
+w = blackman(8);
+w=w*8/sum(w);
+x1=x.*w';
+x2(16)=0;
+x2(1:8)=x1;
+
+subplot(421);
+stem(0:1:7,x);axis([-0.5 7.5 -1.5 2.5]);
+ylabel('x(n) \rightarrow');
+title('a) 8 samples');
+subplot(423);
+stem(0:1:7,w);axis([-0.5 7.5 -1.5 3]);
+ylabel('w(n) \rightarrow');
+title('b) 8 samples Blackman window');
+
+subplot(425);
+stem(0:1:7,x1);axis([-0.5 7.5 -1.5 6]);
+ylabel('x_w(n) \rightarrow');
+title('c) x(n)\cdot w(n)');
+
+subplot(427);
+stem(0:1:15,x2);axis([-0.5 15.5 -1.5 6]);
+xlabel('n \rightarrow');ylabel('x_w(n) \rightarrow');
+title('d) x(n)\cdot w(n) + zero-padding');
+
+subplot(222);
+stem(0:1:7,abs(fft(x1)));axis([-0.5 7.5 -0.5 15]);
+ylabel('|X(k)| \rightarrow');
+title('8-point FFT of c)');
+
+subplot(224);
+stem(0:1:15,abs(fft(x2)));axis([-1 16 -0.5 15]);
+xlabel('k \rightarrow');ylabel('|X(k)| \rightarrow');
+title('16-point FFT of d)');
+___________________________________________________________________________
+
+%Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+[u1,FS,NBITS]=wavread('ton2.wav');
+N=8192;
+
+x=cos(2*pi*1000*(0:1:N-1)/44100)';
+figure(2)
+W=blackman(N);
+W=N*W/sum(W); % scaling of window
+f=((0:N/2-1)/N)*FS;
+
+xw=x.*W;
+subplot(3,2,1);plot(0:N-1,x);
+axis([0 1000 -1.1 1.1]);
+title('a) Cosine signal x(n)')
+
+subplot(3,2,3);plot(0:N-1,xw);axis([0 8000 -4 4]);
+title('c) Cosine signal x_w(n)=x(n) \cdot w(n) with window')
+
+X=20*log10(abs(fft(x,N))/(N/2));
+subplot(3,2,2);plot(f,X(1:N/2));
+axis([0 10000 -80 10]);
+ylabel('X(f)');
+title('b) Spectrum of cosine signal')
+
+Xw=20*log10(abs(fft(xw,N))/(N/2));
+subplot(3,2,4);plot(f,Xw(1:N/2));
+axis([0 10000 -80 10]);
+ylabel('X(f)');
+title('d) Spectrum with Blackman window')
+
+s=u1(1:N).*W;
+subplot(3,2,5);plot(0:N-1,s);axis([0 8000 -1.1 1.1]);
+xlabel('n \rightarrow');
+title('e) Audio signal x_w(n) with window')
+
+Sw=20*log10(abs(fft(s,N))/(N/2));
+subplot(3,2,6);plot(f,Sw(1:N/2));
+axis([0 10000 -80 10]);
+ylabel('X(f)');
+title('f) Spectrum with Blackman window')
+xlabel('f in Hz \rightarrow');
+___________________________________________________________________________
+
+%Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+x1=[-1 -0.5 1 2 2 1 0.5 -1];
+x2(16)=0;
+x2(1:8)=x1;
+
+subplot(221);
+stem(0:1:7,x1);axis([-0.5 7.5 -1.5 2.5]);
+ylabel('x(n) \rightarrow');title('8 samples');
+subplot(222);
+stem(0:1:7,abs(fft(x1)));axis([-0.5 7.5 -0.5 10]);
+ylabel('|X(k)| \rightarrow');title('8-point FFT');
+
+subplot(223);
+stem(0:1:15,x2);axis([-0.5 15.5 -1.5 2.5]);
+xlabel('n \rightarrow');ylabel('x(n) \rightarrow');
+title('8 samples + zero-padding');
+
+subplot(224);
+stem(0:1:15,abs(fft(x2)));axis([-1 16 -0.5 10]);
+xlabel('k \rightarrow');ylabel('|X(k)| \rightarrow');
+title('16-point FFT');
+___________________________________________________________________________
+
+% Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+[x,FS,NBITS]=wavread('ton2.wav');
+
+figure(1)
+subplot(3,1,1);
+plot(0:7999,x(1:8000));ylabel('x(n)');
+subplot(3,1,2);
+plot(0:999,x(1:1000));ylabel('x(n)');
+subplot(3,1,3);
+stem(0:99,x(1:100),'.');ylabel('x(n)');
+xlabel('n \rightarrow');
+___________________________________________________________________________
+
+% Author: U. Zölzer
+% Impulse response of 2nd order IIR filter
+% Sample-by-sample algorithm
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+clear
+
+% Coefficients for a high-pass
+a=[1, -1.28, 0.47];
+b=[0.69, -1.38, 0.69];
+
+% Initialization of state variables
+xh1=0;xh2=0;
+yh1=0;yh2=0;
+
+% Input signal: unit impulse
+N=20;  % length of input signal
+x(N)=0;x(1)=1;
+
+% Sample-by-sample algorithm
+for n=1:N
+y(n)=b(1)*x(n) + b(2)*xh1 + b(3)*xh2 - a(2)*yh1 - a(3)*yh2;
+xh2=xh1;xh1=x(n);
+yh2=yh1;yh1=y(n);
+end;
+
+% Plot results
+subplot(2,1,1)
+stem(0:1:length(x)-1,x,'.');axis([-0.6 length(x)-1 -1.2 1.2]);
+xlabel('n \rightarrow');ylabel('x(n) \rightarrow');
+subplot(2,1,2)
+stem(0:1:length(x)-1,y,'.');axis([-0.6 length(x)-1 -1.2 1.2]);
+xlabel('n \rightarrow');ylabel('y(n) \rightarrow');
+--------------------------------------------------------------------------
+
+% Author: U. Zölzer
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+% Read input sound file into vector x(n) and sampling frequency FS
+[x,FS]=wavread('input filename');
+% Sample-by sample algorithm y(n)=a*x(n)
+for n=1:length(x), 
+     y(n)=a * x(n);
+end;
+% Write y(n) into output sound file with number of 
+% bits Nbits and sampling frequency FS
+wavwrite(y,FS,Nbits,'output filename'); 
+
+--------------------------------------------------------------------------
+
+function waterfspec(signal,start,steps,N,fS,clippingpoint,baseplane)
+% Authors: J. Schattschneider, U. Zölzer
+% waterfspec( signal, start, steps, N, fS, clippingpoint, baseplane)
+%
+% shows short-time spectra of signal, starting
+% at k=start, with increments of STEP with N-point FFT 
+% dynamic range from -baseplane in dB up to 20*log(clippingpoint)
+% in dB versus time axis
+%
+%--------------------------------------------------------------------------
+% This source code is provided without any warranties as published in 
+% DAFX book 2nd edition, copyright Wiley & Sons 2011, available at 
+% http://www.dafx.de. It may be used for educational purposes and not 
+% for commercial applications without further permission.
+%--------------------------------------------------------------------------
+
+echo off;
+if nargin<7, baseplane=-100; end
+if nargin<6, clippingpoint=0; end
+if nargin<5, fS=48000; end
+if nargin<4, N=1024; end         % default FFT
+if nargin<3, steps=round(length(signal)/25); end
+if nargin<2, start=0; end
+
+windoo=blackman(N);              % window - default
+windoo=windoo*N/sum(windoo);     % scaling
+% Calculation of number of spectra nos
+  n=length(signal);
+  rest=n-start-N;
+  nos=round(rest/steps);
+  if nos>rest/steps, nos=nos-1; end
+% vectors for 3D representation
+  x=linspace(0, fS/1000 ,N+1);
+  z=x-x;
+  cup=z+clippingpoint;
+  cdown=z+baseplane;
+  
+  signal=signal+0.0000001;  
+% Computation of spectra and visual representation
+  for i=1:1:nos,
+    spek1=20.*log10(abs(fft(windoo.*signal(1+start+...
+        i*steps:start+N+i*steps)))./(N)/0.5);
+    spek=[-200 ; spek1(1:N)];
+    spek=(spek>cup').*cup'+(spek<=cup').*spek;
+    spek=(spek<cdown').*cdown'+(spek>=cdown').*spek;
+    spek(1)=baseplane-10;
+    spek(N/2)=baseplane-10;
+    y=x-x+(i-1);
+    if i==1, 
+       p=plot3(x(1:N/2),y(1:N/2),spek(1:N/2),'k');
+       set(p,'Linewidth',0.1);
+    end
+       pp=patch(x(1:N/2),y(1:N/2),spek(1:N/2),'w','Visible','on');
+       set(pp,'Linewidth',0.1);
+   end;
+set(gca,'DrawMode','fast');
+axis([-0.3 fS/2000+0.3 0 nos baseplane-10 0]);
+set(gca,'Ydir','reverse');
+title('Waterfall Representation of Short-time FFTs');
+xlabel('f in Hz \rightarrow');
+ylabel('n \rightarrow');zlabel('Magnitude in dB \rightarrow');
+view(12,40);
