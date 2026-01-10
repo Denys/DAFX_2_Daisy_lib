@@ -37,6 +37,13 @@ public:
     inline void SetLowPassPole(const float &rl) { rl_ = rl; }
     inline void SetMix(const float &mix) { mix_ = mix; }
 
+    inline float GetDrive() const { return drive_; }
+    inline float GetBias() const { return bias_; }
+    inline float GetDistortion() const { return dist_; }
+    inline float GetHighPassPole() const { return rh_; }
+    inline float GetLowPassPole() const { return rl_; }
+    inline float GetMix() const { return mix_; }
+
 private:
     float drive_;
     float bias_;

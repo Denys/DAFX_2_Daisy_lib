@@ -117,44 +117,62 @@ This library fills these gaps with well-documented, tested implementations.
 ```mermaid
 flowchart TD
 
-    subgraph DAFX_View["DAFX (Compact View)"]
+    subgraph DAFX_View["🎛️ DAFX – Audio Effects Library"]
 
-        A[DAFX] --> B[Filters]
+        A[DAFX Core]:::core
+
+        %% Filters
+        A --> B[Filters]:::filters
         B --> B1[Shelving]
         B --> B2[Parametric EQ]
         B --> B3[Comb]
 
-        A --> C[Modulation]
+        %% Modulation
+        A --> C[Modulation]:::mod
         C --> C1[Vibrato]
         C --> C2[Ring Mod]
 
-        A --> D[Dynamics]
+        %% Dynamics
+        A --> D[Dynamics]:::dyn
         D --> D1[Noise Gate]
         D --> D2[Compressor / Expander]
 
-        A --> E[Spatial]
+        %% Spatial
+        A --> E[Spatial]:::spatial
         E --> E1[Stereo Pan]
         E --> E2[FDN Reverb]
 
-        A --> F[Time-Domain]
+        %% Time Domain
+        A --> F[Time-Domain]:::time
         F --> F1[SOLA Time]
         F --> F2[PSOLA]
 
-        A --> G[Spectral*]
+        %% Spectral
+        A --> G[Spectral*]:::spectral
         G --> G1[Robotization]
         G --> G2[Whisperization]
 
-        A --> H[Analysis]
+        %% Analysis
+        A --> H[Analysis]:::analysis
         H --> H1[YIN Pitch]
 
-        A --> I[Virtual Analog]
+        %% Virtual Analog
+        A --> I[Virtual Analog]:::analog
         I --> I1[Wah-Wah]
         I --> I2[Tone Stack]
 
     end
 
-    style G fill:#ffcc00
-
+    %% ===== Styling =====
+    classDef core fill:#2c3e50,color:#ffffff,stroke:#1a252f,stroke-width:2px
+    classDef filters fill:#3498db,color:#ffffff
+    classDef mod fill:#9b59b6,color:#ffffff
+    classDef dyn fill:#e74c3c,color:#ffffff
+    classDef spatial fill:#1abc9c,color:#ffffff
+    classDef time fill:#f39c12,color:#ffffff
+    classDef spectral fill:#f1c40f,color:#000000,stroke:#d4ac0d,stroke-width:2px
+    classDef analysis fill:#95a5a6,color:#000000
+    classDef analog fill:#e67e22,color:#ffffff
 ```
 
 *Note: Spectral effects marked in yellow require FFT and have higher CPU requirements
@@ -267,6 +285,117 @@ DAFX_2_Daisy_lib/
 ├── dafx_bugs.md          # Bug log
 └── CMakeLists.txt        # Build configuration
 ```
+```mermaid
+flowchart LR
+
+  %% ===== Root =====
+  A[DAFX_2_Daisy_lib/]:::root
+
+  %% ===== Top-level groups =====
+  subgraph TOP["Top Level"]
+    direction TB
+    SRC[src/]:::folderMain
+    TESTS[tests/]:::folder
+    EXAMPLES[examples/]:::folder
+    DOCS[docs/]:::folder
+    DIRECTIVES[directives/]:::folder
+    EXECUTION[execution/]:::folder
+    PLANS[plans/]:::folder
+    MATLAB[DAFX-MATLAB/]:::folderMain
+  end
+
+  subgraph FILES["Project Files"]
+    direction TB
+    CHECKPOINT[CHECKPOINT.md]:::fileKey
+    BUGS[dafx_bugs.md]:::file
+    CMAKE[CMakeLists.txt]:::file
+  end
+
+  %% Root connections
+  A --> TOP
+  A --> FILES
+
+  %% ===== src/ panel =====
+  subgraph SRC_PANEL["src/ — modules (Algorithm Categories)"]
+    direction TB
+    EFFECTS[effects/]:::catAnalog
+    FILTERS[filters/]:::catFilters
+    DYNAMICS[dynamics/]:::catDyn
+    MODULATION[modulation/]:::catMod
+    SPATIAL[spatial/]:::catSpatial
+    ANALYSIS[analysis/]:::catAnalysis
+    UTILITY[utility/]:::moduleNeutral
+  end
+
+  %% Expand src/
+  SRC --> SRC_PANEL
+
+  %% ===== Detailed expansions (only where needed) =====
+  subgraph EFFECTS_PANEL["effects/ (Virtual Analog & misc)"]
+    direction TB
+    TUBE_CPP[tube.cpp ✓ Implemented]:::ok
+    TUBE_H[tube.h]:::file
+    SHELVING_CPP[shelving.cpp ⚙️ Planned]:::planned
+    SHELVING_H[shelving.h]:::file
+    DOTS1[...]:::ghost
+  end
+
+  subgraph FILTERS_PANEL["filters/"]
+    direction TB
+    PEAK[peakfilter.cpp]:::file
+    DOTS2[...]:::ghost
+  end
+
+  subgraph DYNAMICS_PANEL["dynamics/"]
+    direction TB
+    NG[noisegate.cpp]:::file
+    DOTS3[...]:::ghost
+  end
+
+  subgraph MOD_PANEL["modulation/"]
+    direction TB
+    VIB[vibrato.cpp]:::file
+    DOTS4[...]:::ghost
+  end
+
+  %% Module expansions
+  EFFECTS --> EFFECTS_PANEL
+  FILTERS --> FILTERS_PANEL
+  DYNAMICS --> DYNAMICS_PANEL
+  MODULATION --> MOD_PANEL
+
+  %% Minimal placeholders for empty modules (keeps compact visual consistency)
+  SPATIAL --> DOTS5[...]:::ghost
+  ANALYSIS --> DOTS6[...]:::ghost
+  UTILITY --> DOTS7[...]:::ghost
+
+  %% ===== Styling =====
+  classDef root fill:#2c3e50,color:#ffffff,stroke:#1a252f,stroke-width:2px
+
+  %% Top-level project structure (neutral)
+  classDef folder fill:#3498db,color:#ffffff,stroke:#1f6fa5
+  classDef folderMain fill:#2980b9,color:#ffffff,stroke:#1f6fa5,stroke-width:2px
+
+  %% Algorithm Category palette (match DAFX diagram)
+  classDef catFilters  fill:#3498db,color:#ffffff,stroke:#1f6fa5,stroke-width:2px
+  classDef catMod      fill:#9b59b6,color:#ffffff,stroke:#6d3f86,stroke-width:2px
+  classDef catDyn      fill:#e74c3c,color:#ffffff,stroke:#b03a2e,stroke-width:2px
+  classDef catSpatial  fill:#1abc9c,color:#ffffff,stroke:#148f77,stroke-width:2px
+  classDef catAnalysis fill:#95a5a6,color:#000000,stroke:#707b7c,stroke-width:2px
+  classDef catAnalog   fill:#e67e22,color:#ffffff,stroke:#af601a,stroke-width:2px
+
+  %% Neutral module (utility)
+  classDef moduleNeutral fill:#bdc3c7,color:#2c3e50,stroke:#95a5a6,stroke-width:2px
+
+  %% Files and statuses
+  classDef file fill:#ecf0f1,color:#2c3e50,stroke:#bdc3c7
+  classDef fileKey fill:#fdf2e9,color:#6e2c00,stroke:#e59866,stroke-width:2px
+  classDef ok fill:#2ecc71,color:#ffffff,stroke:#1eaa57,stroke-width:2px
+  classDef planned fill:#f39c12,color:#ffffff,stroke:#c87f0a,stroke-width:2px
+  classDef ghost fill:#ffffff,color:#95a5a6,stroke:#dcdcdc,stroke-dasharray: 4 3
+
+```
+
 
 ### 4.2 Module Categories
 
@@ -522,26 +651,39 @@ Specialized effects for specific use cases.
 
 ```mermaid
 gantt
-    title Algorithm Implementation Roadmap
+    title Algorithm Implementation Roadmap (Grouped by Category)
     dateFormat  YYYY-MM-DD
-    
-    section Phase 1 - Foundation
-    Tube Distortion      :done,    tube,   2026-01-01, 7d
-    Shelving Filters     :active,  shelf,  after tube, 5d
-    Peak EQ              :         peak,   after shelf, 5d
-    Vibrato              :         vib,    after peak, 4d
-    Ring Modulator       :         ring,   after vib, 2d
-    Stereo Pan           :         pan,    after ring, 2d
-    Noise Gate           :         gate,   after pan, 7d
-    Wah-wah              :         wah,    after gate, 7d
-    Tone Stack           :         tone,   after wah, 7d
-    
-    section Phase 2 - Enhancement
-    YIN Pitch            :         yin,    after tone, 14d
-    Robotization         :         robot,  after yin, 7d
-    Whisperization       :         whisp,  after robot, 5d
-    Time Stretch         :         sola,   after whisp, 14d
-    FDN Reverb           :         fdn,    after sola, 14d
+
+    section Virtual Analog
+    Tube Distortion      :done,    id_tube,   2026-01-01, 7d
+    Wah-wah              :         id_wah,    after id_tube, 7d
+    Tone Stack           :         id_tone,   after id_wah, 7d
+
+    section Filters
+    Shelving Filters     :active,  id_shelf,  after id_tone, 5d
+    Peak EQ              :         id_peak,   after id_shelf, 5d
+
+    section Modulation
+    Vibrato              :         id_vib,    after id_peak, 4d
+    Ring Modulator       :         id_ring,   after id_vib, 2d
+
+    section Spatial
+    Stereo Pan           :         id_pan,    after id_ring, 2d
+    FDN Reverb           :         id_fdn,    after id_pan, 14d
+
+    section Dynamics
+    Noise Gate           :         id_gate,   after id_fdn, 7d
+
+    section Analysis
+    YIN Pitch            :         id_yin,    after id_gate, 14d
+
+    section Spectral
+    Robotization         :         id_robot,  after id_yin, 7d
+    Whisperization       :         id_whisp,  after id_robot, 5d
+
+    section Time-Domain
+    Time Stretch (SOLA)  :         id_sola,   after id_whisp, 14d
+
 ```
 
 ---
