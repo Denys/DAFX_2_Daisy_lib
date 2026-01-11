@@ -32,6 +32,12 @@ set(TEST_SOURCES
     # Utilities
     test_circularbuffer.cpp
     test_envelopefollower.cpp
+    test_princarg.cpp
+    test_windows.cpp
+    test_fft_handler.cpp
+    test_xcorr.cpp
+    # Analysis (Phase 2)
+    test_yin.cpp
 )
 
 # Create test executable

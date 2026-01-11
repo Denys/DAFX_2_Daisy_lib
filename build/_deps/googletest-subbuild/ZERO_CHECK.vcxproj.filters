@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\_deps\googletest-subbuild\CMakeFiles\3fe71b891099a8f1578536a5772b903d\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{36BCFE9E-4B3D-318D-B122-CECD187BA021}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

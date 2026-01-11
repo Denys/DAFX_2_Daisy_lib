@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/googletest-populate"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/3fe71b891099a8f1578536a5772b903d/googletest-populate.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/4641ac20ff05f43792e7cb297d7f0522/googletest-populate-complete.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-build.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-configure.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-download.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-install.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-mkdir.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-patch.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-test.rule"
+		},
+		{
+			"file" : "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"googletest-populate"
+		],
+		"name" : "googletest-populate"
+	}
+}

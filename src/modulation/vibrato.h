@@ -2,8 +2,8 @@
 // Vibrato effect using delay line modulation
 //
 // Ported from DAFX book vibrato.m by S. Disch
-// Implements a vibrato effect using a modulated delay line with linear interpolation
-// Suitable for pitch modulation and chorus-like effects
+// Implements a vibrato effect using a modulated delay line with linear
+// interpolation Suitable for pitch modulation and chorus-like effects
 //
 // ## Parameters
 // - frequency: Modulation frequency in Hz (0.1-20 Hz, default 5 Hz)
@@ -28,53 +28,47 @@
 #include <cmath>
 #include <cstring>
 
-namespace daisysp
-{
-class Vibrato
-{
+namespace daisysp {
+class Vibrato {
 public:
-    Vibrato() {}
-    ~Vibrato()
-    {
-        if (delay_line_ != nullptr)
-        {
-            delete[] delay_line_;
-            delay_line_ = nullptr;
-        }
+  Vibrato() {}
+  ~Vibrato() {
+    if (delay_line_ != nullptr) {
+      delete[] delay_line_;
+      delay_line_ = nullptr;
     }
+  }
 
-    void Init(float sample_rate);
+  void Init(float sample_rate);
 
-    float Process(const float &in);
+  float Process(const float &in);
 
-    inline void SetFrequency(const float &freq)
-    {
-        freq_ = freq;
-        RecalculateCoefficients();
-    }
+  inline void SetFrequency(const float &freq) {
+    freq_ = freq;
+    RecalculateCoefficients();
+  }
 
-    inline void SetWidth(const float &width)
-    {
-        width_ = width;
-        RecalculateCoefficients();
-    }
+  inline void SetWidth(const float &width) {
+    width_ = width;
+    RecalculateCoefficients();
+  }
 
-    inline float GetFrequency() const { return freq_; }
-    inline float GetWidth() const { return width_; }
+  inline float GetFrequency() const { return freq_; }
+  inline float GetWidth() const { return width_; }
 
 private:
-    float sample_rate_;
-    float freq_;
-    float width_;
+  float sample_rate_;
+  float freq_;
+  float width_;
 
-    int delay_samples_;
-    int width_samples_;
-    int mod_freq_samples_;
-    int delay_line_size_;
-    float* delay_line_;
-    int write_ptr_;
+  int delay_samples_;
+  int width_samples_;
+  float mod_freq_samples_;
+  int delay_line_size_;
+  float *delay_line_;
+  int write_ptr_;
 
-    void RecalculateCoefficients();
+  void RecalculateCoefficients();
 };
 
 } // namespace daisysp

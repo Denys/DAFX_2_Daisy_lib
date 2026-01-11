@@ -1,0 +1,14 @@
+# Target labels
+ googletest-populate
+# Source files and their labels
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/googletest-populate
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/3fe71b891099a8f1578536a5772b903d/googletest-populate.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/4641ac20ff05f43792e7cb297d7f0522/googletest-populate-complete.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-build.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-configure.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-download.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-install.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-mkdir.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-patch.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-test.rule
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ccaaff053d184a932cab319f52285f01/googletest-populate-update.rule

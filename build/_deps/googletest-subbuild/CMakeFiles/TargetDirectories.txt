@@ -1,0 +1,3 @@
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/googletest-populate.dir
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ALL_BUILD.dir
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-subbuild/CMakeFiles/ZERO_CHECK.dir

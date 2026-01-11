@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\CMakeFiles\ccb0dc8dec62a1dc5a2166480a8cb766\RUN_TESTS_force.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{F67B9DF2-C400-3DC2-B78D-210FAEE3217D}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
