@@ -10,15 +10,18 @@ from validation_infrastructure.benchmarking.benchmark import (
 )
 from validation_infrastructure.benchmarking.profiler import (
     ValidationProfiler,
-    profile_validator,
+    ProfileContext,
     ProfileResult,
+    profile_validator,
 )
 from validation_infrastructure.benchmarking.reports import (
-    BenchmarkReporter,
-    generate_report,
-    ConsoleReporter,
-    JSONReporter,
-    HTMLReporter,
+    BenchmarkResult as ReportBenchmarkResult,
+    BenchmarkReport,
+    ReportGenerator,
+    ConsoleReportGenerator,
+    JSONReportGenerator,
+    HTMLReportGenerator,
+    MarkdownReportGenerator,
 )
 
 __all__ = [
@@ -31,12 +34,15 @@ __all__ = [
     "compare_validators",
     # Profiler
     "ValidationProfiler",
-    "profile_validator",
+    "ProfileContext",
     "ProfileResult",
+    "profile_validator",
     # Reports
-    "BenchmarkReporter",
-    "generate_report",
-    "ConsoleReporter",
-    "JSONReporter",
-    "HTMLReporter",
+    "ReportBenchmarkResult",
+    "BenchmarkReport",
+    "ReportGenerator",
+    "ConsoleReportGenerator",
+    "JSONReportGenerator",
+    "HTMLReportGenerator",
+    "MarkdownReportGenerator",
 ]

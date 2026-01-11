@@ -18,17 +18,20 @@ FetchContent_MakeAvailable(googletest)
 
 # Test source files
 set(TEST_SOURCES
+    # Effects
     test_tube.cpp
-    # Add more test files as modules are implemented
-    # test_lowshelving.cpp
-    # test_highshelving.cpp
-    # test_peakfilter.cpp
-    # test_vibrato.cpp
-    # test_ringmod.cpp
-    # test_stereopan.cpp
-    # test_noisegate.cpp
-    # test_wahwah.cpp
-    # test_tonestack.cpp
+    test_lowshelving.cpp
+    test_highshelving.cpp
+    test_peakfilter.cpp
+    test_vibrato.cpp
+    test_ringmod.cpp
+    test_stereopan.cpp
+    test_noisegate.cpp
+    test_wahwah.cpp
+    test_tonestack.cpp
+    # Utilities
+    test_circularbuffer.cpp
+    test_envelopefollower.cpp
 )
 
 # Create test executable

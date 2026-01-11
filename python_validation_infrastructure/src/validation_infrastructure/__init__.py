@@ -1,5 +1,5 @@
 """
-Validation Infrastructure v3.1 - Comprehensive Python Validation System.
+Validation Infrastructure v3.2 - Comprehensive Python Validation System.
 
 A robust validation framework providing type checking, schema validation,
 custom decorators, data sanitization, and extensive validation tools.
@@ -30,7 +30,13 @@ from validation_infrastructure.schemas import (
     MarshmallowSchemaValidator,
 )
 
-__version__ = "3.1.0"
+# New in v3.2
+from validation_infrastructure import api
+from validation_infrastructure import database
+from validation_infrastructure import testing
+from validation_infrastructure import benchmarking
+
+__version__ = "3.2.0"
 __author__ = "Validation Infrastructure Team"
 
 __all__ = [
@@ -53,6 +59,12 @@ __all__ = [
     "SchemaValidator",
     "PydanticSchemaValidator",
     "MarshmallowSchemaValidator",
+    # Modules (new in v3.2)
+    "api",
+    "database",
+    "testing",
+    "benchmarking",
     # Version
     "__version__",
 ]
+

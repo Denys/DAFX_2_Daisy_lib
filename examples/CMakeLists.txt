@@ -2,10 +2,9 @@
 
 # Example source files
 set(EXAMPLE_SOURCES
-    # Add example files as they are created
-    # example_shelving.cpp
-    # example_vibrato.cpp
-    # example_noisegate.cpp
+    example_guitar_amp.cpp
+    example_parametric_eq.cpp
+    example_modulation.cpp
 )
 
 # Create example executables
