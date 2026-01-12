@@ -1,0 +1,88 @@
+# DAFX-to-DaisySP Release Pipeline
+# Creates releases with built artifacts
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name || github.event.inputs.version }}
+        release_name: Release ${{ github.ref_name || github.event.inputs.version }}
+        body: |
+          ## DAFX-to-DaisySP Release
+          
+          ### Changes
+          - See CHANGELOG.md for details
+          
+          ### Installation
+          1. Download the header files
+          2. Include in your DaisySP project
+          3. See examples/ directory for usage
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'alpha') || contains(github.ref_name, 'beta') }}
+
+  build-artifacts:
+    needs: create-release
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: dafx-daisysp-linux
+          - os: windows-latest
+            artifact_name: dafx-daisysp-windows
+          - os: macos-latest
+            artifact_name: dafx-daisysp-macos
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C Release --output-on-failure
+    
+    - name: Package headers
+      shell: bash
+      run: |
+        mkdir -p package/include
+        cp -r src/* package/include/
+        cp README.md package/
+        cp LICENSE package/ 2>/dev/null || echo "No LICENSE file"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.artifact_name }}
+        path: package/

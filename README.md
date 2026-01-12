@@ -1,5 +1,6 @@
 # DAFX-to-DaisySP Library
 
+[![Build and Test](https://github.com/electro-smith/DAFX_2_Daisy_lib/actions/workflows/build.yml/badge.svg)](https://github.com/electro-smith/DAFX_2_Daisy_lib/actions/workflows/build.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/)
 [![CMake](https://img.shields.io/badge/CMake-3.16%2B-blue.svg)](https://cmake.org/)
@@ -292,14 +293,20 @@ See [`tests/TEST_PATTERNS.md`](tests/TEST_PATTERNS.md) for testing guidelines.
 - [x] Wah-Wah
 - [x] Tone Stack
 
-### Phase 2: Enhancement (Planned)
-- [ ] YIN Pitch Detection
-- [ ] Robotization
-- [ ] Whisperization
-- [ ] SOLA Time Stretch
-- [ ] FDN Reverb
-- [ ] Compressor/Expander
-- [ ] Universal Comb Filter
+### Phase 2: Enhancement (Complete ✅)
+- [x] YIN Pitch Detection
+- [x] Robotization
+- [x] Whisperization
+- [x] SOLA Time Stretch
+- [x] FDN Reverb
+- [x] Compressor/Expander
+- [x] Universal Comb Filter
+- [x] LP-IIR Comb Filter
+
+### Phase 3: Advanced (Complete ✅)
+- [x] Spectral Filter
+- [x] Phase Vocoder
+- [x] Crosstalk Canceller
 
 See [`plans/DAFX_DaisySP_Implementation_Plan.md`](plans/DAFX_DaisySP_Implementation_Plan.md) for detailed roadmap.
 

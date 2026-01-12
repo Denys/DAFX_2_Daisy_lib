@@ -1,0 +1,10 @@
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\effects\tube.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\tube.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\effects\wahwah.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\wahwah.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\effects\tonestack.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\tonestack.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\filters\lowshelving.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\lowshelving.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\filters\highshelving.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\highshelving.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\filters\peakfilter.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\peakfilter.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\dynamics\noisegate.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\noisegate.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\modulation\vibrato.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\vibrato.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\modulation\ringmod.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\ringmod.obj
+C:\Users\denko\Claude\DAFX_2_Daisy_lib\src\spatial\stereopan.cpp;C:\Users\denko\Claude\DAFX_2_Daisy_lib\build\dafx_daisysp.dir\Release\stereopan.obj

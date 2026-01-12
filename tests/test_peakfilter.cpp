@@ -4,7 +4,6 @@
 #include "filters/peakfilter.h"
 #include <gtest/gtest.h>
 
-
 using namespace daisysp;
 
 class PeakFilterTest : public ::testing::Test {
@@ -17,7 +16,7 @@ protected:
 // Test initialization
 TEST_F(PeakFilterTest, Initialization) {
   EXPECT_GT(filter.GetFrequency(), 0.0f);
-  EXPECT_GT(filter.GetQ(), 0.0f);
+  EXPECT_GT(filter.GetBandwidth(), 0.0f);
   EXPECT_FLOAT_EQ(filter.GetGain(), 0.0f);
 }
 
@@ -26,8 +25,8 @@ TEST_F(PeakFilterTest, ParameterSetting) {
   filter.SetFrequency(1000.0f);
   EXPECT_FLOAT_EQ(filter.GetFrequency(), 1000.0f);
 
-  filter.SetQ(2.0f);
-  EXPECT_FLOAT_EQ(filter.GetQ(), 2.0f);
+  filter.SetBandwidth(200.0f);
+  EXPECT_FLOAT_EQ(filter.GetBandwidth(), 200.0f);
 
   filter.SetGain(6.0f);
   EXPECT_FLOAT_EQ(filter.GetGain(), 6.0f);
@@ -54,7 +53,7 @@ TEST_F(PeakFilterTest, UnityGain) {
 // Test output is finite
 TEST_F(PeakFilterTest, OutputRange) {
   filter.SetFrequency(1000.0f);
-  filter.SetQ(5.0f);
+  filter.SetBandwidth(100.0f);
   filter.SetGain(12.0f);
 
   for (int i = -10; i <= 10; i++) {
@@ -71,9 +70,9 @@ TEST_F(PeakFilterTest, DifferentSampleRates) {
   EXPECT_NO_THROW(filter.Init(96000.0f));
 }
 
-// Test Q range
-TEST_F(PeakFilterTest, QRange) {
-  EXPECT_NO_THROW(filter.SetQ(0.5f));
-  EXPECT_NO_THROW(filter.SetQ(1.0f));
-  EXPECT_NO_THROW(filter.SetQ(10.0f));
+// Test Bandwidth range
+TEST_F(PeakFilterTest, BandwidthRange) {
+  EXPECT_NO_THROW(filter.SetBandwidth(50.0f));
+  EXPECT_NO_THROW(filter.SetBandwidth(100.0f));
+  EXPECT_NO_THROW(filter.SetBandwidth(1000.0f));
 }

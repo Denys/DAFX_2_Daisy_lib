@@ -1,0 +1,10 @@
+^C:\USERS\DENKO\CLAUDE\DAFX_2_DAISY_LIB\BUILD\CMAKEFILES\B0B1F8A958F094EA9AE93CC152F705F2\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" -SC:/Users/denko/Claude/DAFX_2_Daisy_lib -BC:/Users/denko/Claude/DAFX_2_Daisy_lib/build --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/dafx_daisysp.sln
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

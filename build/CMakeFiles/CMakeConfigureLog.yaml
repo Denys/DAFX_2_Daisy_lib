@@ -35,6 +35,9 @@ events:
     found: "C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeCXXCompilerId.cpp.in"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -90,7 +93,7 @@ events:
       The output was:
       0
       MSBuild version 17.14.23+b0019275e for .NET Framework
-      Build started 11/01/2026 3:32:32 am.
+      Build started 11/01/2026 10:25:16 pm.
       
       Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\4.2.1\\CompilerIdCXX\\CompilerIdCXX.vcxproj" on node 1 (default targets).
       PrepareForBuild:
@@ -119,7 +122,7 @@ events:
           0 Warning(s)
           0 Error(s)
       
-      Time Elapsed 00:00:03.06
+      Time Elapsed 00:00:02.26
       
       
       Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CompilerIdCXX.exe"
@@ -152,6 +155,9 @@ events:
       - "link"
     candidate_directories:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -196,6 +202,9 @@ events:
     found: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/link.exe"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -258,6 +267,9 @@ events:
       - "lld-link"
     candidate_directories:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -301,6 +313,15 @@ events:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.com"
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.exe"
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link"
+      - "C:/Program Files/Git/mingw64/bin/lld-link.com"
+      - "C:/Program Files/Git/mingw64/bin/lld-link.exe"
+      - "C:/Program Files/Git/mingw64/bin/lld-link"
+      - "C:/Program Files/Git/usr/bin/lld-link.com"
+      - "C:/Program Files/Git/usr/bin/lld-link.exe"
+      - "C:/Program Files/Git/usr/bin/lld-link"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/lld-link.com"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/lld-link.exe"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/lld-link"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/lld-link.com"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/lld-link.exe"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/lld-link"
@@ -421,6 +442,9 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -481,6 +505,9 @@ events:
       - "link"
     candidate_directories:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -525,6 +552,9 @@ events:
     found: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/link.exe"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -585,6 +615,9 @@ events:
       - "mt"
     candidate_directories:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -628,6 +661,15 @@ events:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/mt.com"
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/mt.exe"
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/mt"
+      - "C:/Program Files/Git/mingw64/bin/mt.com"
+      - "C:/Program Files/Git/mingw64/bin/mt.exe"
+      - "C:/Program Files/Git/mingw64/bin/mt"
+      - "C:/Program Files/Git/usr/bin/mt.com"
+      - "C:/Program Files/Git/usr/bin/mt.exe"
+      - "C:/Program Files/Git/usr/bin/mt"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/mt.com"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/mt.exe"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/mt"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/mt.com"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/mt.exe"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/mt"
@@ -748,6 +790,9 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -808,6 +853,9 @@ events:
       - "lib"
     candidate_directories:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -852,6 +900,9 @@ events:
     found: "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lib.exe"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -914,6 +965,9 @@ events:
     names:
       - "rc"
     candidate_directories:
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -966,6 +1020,15 @@ events:
       - "C:/Program Files (x86)/dafx_daisysp/sbin/"
       - "C:/Program Files (x86)/dafx_daisysp/"
     searched_directories:
+      - "C:/Program Files/Git/mingw64/bin/rc.com"
+      - "C:/Program Files/Git/mingw64/bin/rc.exe"
+      - "C:/Program Files/Git/mingw64/bin/rc"
+      - "C:/Program Files/Git/usr/bin/rc.com"
+      - "C:/Program Files/Git/usr/bin/rc.exe"
+      - "C:/Program Files/Git/usr/bin/rc"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/rc.com"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/rc.exe"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/rc"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/rc.com"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/rc.exe"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/rc"
@@ -1122,6 +1185,9 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -1176,8 +1242,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-vcm15k"
-      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-vcm15k"
+      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-q98vvc"
+      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-q98vvc"
     cmakeVariables:
       CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /GR /EHsc"
       CMAKE_CXX_FLAGS_DEBUG: "/Zi /Ob0 /Od /RTC1"
@@ -1187,39 +1253,39 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-vcm15k'
+        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-q98vvc'
         
-        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_c2fcd.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_112c5.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.23+b0019275e for .NET Framework
-        Build started 11/01/2026 3:32:36 am.
+        Build started 11/01/2026 10:25:19 pm.
         
-        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-vcm15k\\cmTC_c2fcd.vcxproj" on node 1 (default targets).
+        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-q98vvc\\cmTC_112c5.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-vcm15k\\Debug\\".
-          Creating directory "cmTC_c2fcd.dir\\Debug\\cmTC_c2fcd.tlog\\".
+          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-q98vvc\\Debug\\".
+          Creating directory "cmTC_112c5.dir\\Debug\\cmTC_112c5.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_c2fcd.dir\\Debug\\cmTC_c2fcd.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_c2fcd.dir\\Debug\\cmTC_c2fcd.tlog\\unsuccessfulbuild".
+          Creating "cmTC_112c5.dir\\Debug\\cmTC_112c5.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_112c5.dir\\Debug\\cmTC_112c5.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_c2fcd.dir\\Debug\\\\" /Fd"cmTC_c2fcd.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_112c5.dir\\Debug\\\\" /Fd"cmTC_112c5.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35220 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_c2fcd.dir\\Debug\\\\" /Fd"cmTC_c2fcd.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /EHsc /RTC1 /MDd /GR /Fo"cmTC_112c5.dir\\Debug\\\\" /Fd"cmTC_112c5.dir\\Debug\\vc143.pdb" /external:W1 /TP /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCXXCompilerABI.cpp"
           CMakeCXXCompilerABI.cpp
         Link:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-vcm15k\\Debug\\cmTC_c2fcd.exe" /INCREMENTAL /ILK:"cmTC_c2fcd.dir\\Debug\\cmTC_c2fcd.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-vcm15k/Debug/cmTC_c2fcd.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-vcm15k/Debug/cmTC_c2fcd.lib" /MACHINE:X64  /machine:x64 cmTC_c2fcd.dir\\Debug\\CMakeCXXCompilerABI.obj
-          cmTC_c2fcd.vcxproj -> C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-vcm15k\\Debug\\cmTC_c2fcd.exe
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-q98vvc\\Debug\\cmTC_112c5.exe" /INCREMENTAL /ILK:"cmTC_112c5.dir\\Debug\\cmTC_112c5.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-q98vvc/Debug/cmTC_112c5.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-q98vvc/Debug/cmTC_112c5.lib" /MACHINE:X64  /machine:x64 cmTC_112c5.dir\\Debug\\CMakeCXXCompilerABI.obj
+          cmTC_112c5.vcxproj -> C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-q98vvc\\Debug\\cmTC_112c5.exe
         FinalizeBuildStatus:
-          Deleting file "cmTC_c2fcd.dir\\Debug\\cmTC_c2fcd.tlog\\unsuccessfulbuild".
-          Touching "cmTC_c2fcd.dir\\Debug\\cmTC_c2fcd.tlog\\cmTC_c2fcd.lastbuildstate".
-        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-vcm15k\\cmTC_c2fcd.vcxproj" (default targets).
+          Deleting file "cmTC_112c5.dir\\Debug\\cmTC_112c5.tlog\\unsuccessfulbuild".
+          Touching "cmTC_112c5.dir\\Debug\\cmTC_112c5.tlog\\cmTC_112c5.lastbuildstate".
+        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-q98vvc\\cmTC_112c5.vcxproj" (default targets).
         
         Build succeeded.
             0 Warning(s)
             0 Error(s)
         
-        Time Elapsed 00:00:01.75
+        Time Elapsed 00:00:01.93
         
       exitCode: 0
   -
@@ -1275,6 +1341,9 @@ events:
       - "git.cmd"
       - "git"
     candidate_directories:
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -1328,6 +1397,15 @@ events:
       - "C:/Program Files (x86)/dafx_daisysp/"
       - "C:/Users/denko/AppData/Local/Atlassian/SourceTree/git_local/bin/"
     searched_directories:
+      - "C:/Program Files/Git/mingw64/bin/git.cmd.com"
+      - "C:/Program Files/Git/mingw64/bin/git.cmd.exe"
+      - "C:/Program Files/Git/mingw64/bin/git.cmd"
+      - "C:/Program Files/Git/usr/bin/git.cmd.com"
+      - "C:/Program Files/Git/usr/bin/git.cmd.exe"
+      - "C:/Program Files/Git/usr/bin/git.cmd"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/git.cmd.com"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/git.cmd.exe"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/git.cmd"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/git.cmd.com"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/git.cmd.exe"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/git.cmd"
@@ -1484,85 +1562,13 @@ events:
       - "C:/Users/denko/AppData/Local/Atlassian/SourceTree/git_local/bin/git.cmd.com"
       - "C:/Users/denko/AppData/Local/Atlassian/SourceTree/git_local/bin/git.cmd.exe"
       - "C:/Users/denko/AppData/Local/Atlassian/SourceTree/git_local/bin/git.cmd"
-      - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/git.com"
-      - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/git.exe"
-      - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/git"
-      - "C:/Users/denko/AppData/Local/Programs/Python/Python314/git.com"
-      - "C:/Users/denko/AppData/Local/Programs/Python/Python314/git.exe"
-      - "C:/Users/denko/AppData/Local/Programs/Python/Python314/git"
-      - "C:/Program Files (x86)/Razer Chroma SDK/bin/git.com"
-      - "C:/Program Files (x86)/Razer Chroma SDK/bin/git.exe"
-      - "C:/Program Files (x86)/Razer Chroma SDK/bin/git"
-      - "C:/Program Files/Razer Chroma SDK/bin/git.com"
-      - "C:/Program Files/Razer Chroma SDK/bin/git.exe"
-      - "C:/Program Files/Razer Chroma SDK/bin/git"
-      - "C:/Program Files (x86)/Razer/ChromaBroadcast/bin/git.com"
-      - "C:/Program Files (x86)/Razer/ChromaBroadcast/bin/git.exe"
-      - "C:/Program Files (x86)/Razer/ChromaBroadcast/bin/git"
-      - "C:/Program Files/Razer/ChromaBroadcast/bin/git.com"
-      - "C:/Program Files/Razer/ChromaBroadcast/bin/git.exe"
-      - "C:/Program Files/Razer/ChromaBroadcast/bin/git"
-      - "C:/Windows/System32/git.com"
-      - "C:/Windows/System32/git.exe"
-      - "C:/Windows/System32/git"
-      - "C:/Windows/git.com"
-      - "C:/Windows/git.exe"
-      - "C:/Windows/git"
-      - "C:/Windows/System32/wbem/git.com"
-      - "C:/Windows/System32/wbem/git.exe"
-      - "C:/Windows/System32/wbem/git"
-      - "C:/Windows/System32/WindowsPowerShell/v1.0/git.com"
-      - "C:/Windows/System32/WindowsPowerShell/v1.0/git.exe"
-      - "C:/Windows/System32/WindowsPowerShell/v1.0/git"
-      - "C:/Windows/System32/OpenSSH/git.com"
-      - "C:/Windows/System32/OpenSSH/git.exe"
-      - "C:/Windows/System32/OpenSSH/git"
-      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/git.com"
-      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/git.exe"
-      - "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common/git"
-      - "C:/Program Files/dotnet/git.com"
-      - "C:/Program Files/dotnet/git.exe"
-      - "C:/Program Files/dotnet/git"
-      - "C:/Windows/System32/config/systemprofile/AppData/Local/Microsoft/WindowsApps/git.com"
-      - "C:/Windows/System32/config/systemprofile/AppData/Local/Microsoft/WindowsApps/git.exe"
-      - "C:/Windows/System32/config/systemprofile/AppData/Local/Microsoft/WindowsApps/git"
-      - "C:/Program Files/Calibre2/git.com"
-      - "C:/Program Files/Calibre2/git.exe"
-      - "C:/Program Files/Calibre2/git"
-      - "C:/Program Files/Wolfram Research/WolframScript/git.com"
-      - "C:/Program Files/Wolfram Research/WolframScript/git.exe"
-      - "C:/Program Files/Wolfram Research/WolframScript/git"
-      - "C:/Program Files/MATLAB/R2024a/runtime/win64/git.com"
-      - "C:/Program Files/MATLAB/R2024a/runtime/win64/git.exe"
-      - "C:/Program Files/MATLAB/R2024a/runtime/win64/git"
-      - "C:/Program Files/MATLAB/R2024a/bin/git.com"
-      - "C:/Program Files/MATLAB/R2024a/bin/git.exe"
-      - "C:/Program Files/MATLAB/R2024a/bin/git"
-      - "C:/Program Files (x86)/Texas Instruments/Fusion Digital Power Studio/bin/git.com"
-      - "C:/Program Files (x86)/Texas Instruments/Fusion Digital Power Studio/bin/git.exe"
-      - "C:/Program Files (x86)/Texas Instruments/Fusion Digital Power Studio/bin/git"
-      - "C:/Program Files/PuTTY/git.com"
-      - "C:/Program Files/PuTTY/git.exe"
-      - "C:/Program Files/PuTTY/git"
-      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/git.com"
-      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/git.exe"
-      - "C:/Program Files/NVIDIA Corporation/NVIDIA App/NvDLISR/git"
-      - "C:/ProgramData/chocolatey/bin/git.com"
-      - "C:/ProgramData/chocolatey/bin/git.exe"
-      - "C:/ProgramData/chocolatey/bin/git"
-      - "C:/Program Files/Microsoft VS Code/bin/git.com"
-      - "C:/Program Files/Microsoft VS Code/bin/git.exe"
-      - "C:/Program Files/Microsoft VS Code/bin/git"
-      - "C:/Program Files/nodejs/git.com"
-      - "C:/Program Files/nodejs/git.exe"
-      - "C:/Program Files/nodejs/git"
-      - "C:/Program Files/WezTerm/git.com"
-      - "C:/Program Files/WezTerm/git.exe"
-      - "C:/Program Files/WezTerm/git"
-      - "C:/Program Files/Git/cmd/git.com"
-    found: "C:/Program Files/Git/cmd/git.exe"
+      - "C:/Program Files/Git/mingw64/bin/git.com"
+    found: "C:/Program Files/Git/mingw64/bin/git.exe"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -1635,6 +1641,9 @@ events:
     found: "C:/Program Files/CMake/share/cmake-4.2/Modules/CMakeCCompilerId.c.in"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -1696,7 +1705,7 @@ events:
       The output was:
       0
       MSBuild version 17.14.23+b0019275e for .NET Framework
-      Build started 11/01/2026 3:32:54 am.
+      Build started 11/01/2026 10:25:26 pm.
       
       Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\4.2.1\\CompilerIdC\\CompilerIdC.vcxproj" on node 1 (default targets).
       PrepareForBuild:
@@ -1725,7 +1734,7 @@ events:
           0 Warning(s)
           0 Error(s)
       
-      Time Elapsed 00:00:01.73
+      Time Elapsed 00:00:02.02
       
       
       Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CompilerIdC.exe"
@@ -1758,6 +1767,9 @@ events:
       - "lld-link"
     candidate_directories:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/"
+      - "C:/Program Files/Git/mingw64/bin/"
+      - "C:/Program Files/Git/usr/bin/"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/"
       - "C:/Program Files (x86)/Razer Chroma SDK/bin/"
@@ -1813,6 +1825,15 @@ events:
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.com"
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link.exe"
       - "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/lld-link"
+      - "C:/Program Files/Git/mingw64/bin/lld-link.com"
+      - "C:/Program Files/Git/mingw64/bin/lld-link.exe"
+      - "C:/Program Files/Git/mingw64/bin/lld-link"
+      - "C:/Program Files/Git/usr/bin/lld-link.com"
+      - "C:/Program Files/Git/usr/bin/lld-link.exe"
+      - "C:/Program Files/Git/usr/bin/lld-link"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/lld-link.com"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/lld-link.exe"
+      - "C:/Users/denko/AppData/Roaming/SPB_Data/bin/lld-link"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/lld-link.com"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/lld-link.exe"
       - "C:/Users/denko/AppData/Local/Programs/Python/Python314/Scripts/lld-link"
@@ -1969,6 +1990,9 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -2023,8 +2047,8 @@ events:
     checks:
       - "Detecting C compiler ABI info"
     directories:
-      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-9767nw"
-      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-9767nw"
+      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-dn4c3a"
+      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-dn4c3a"
     cmakeVariables:
       CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
@@ -2032,39 +2056,39 @@ events:
       variable: "CMAKE_C_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-9767nw'
+        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-dn4c3a'
         
-        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_49573.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_f2e5b.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.23+b0019275e for .NET Framework
-        Build started 11/01/2026 3:32:56 am.
+        Build started 11/01/2026 10:25:29 pm.
         
-        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9767nw\\cmTC_49573.vcxproj" on node 1 (default targets).
+        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-dn4c3a\\cmTC_f2e5b.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9767nw\\Debug\\".
-          Creating directory "cmTC_49573.dir\\Debug\\cmTC_49573.tlog\\".
+          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-dn4c3a\\Debug\\".
+          Creating directory "cmTC_f2e5b.dir\\Debug\\cmTC_f2e5b.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_49573.dir\\Debug\\cmTC_49573.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_49573.dir\\Debug\\cmTC_49573.tlog\\unsuccessfulbuild".
+          Creating "cmTC_f2e5b.dir\\Debug\\cmTC_f2e5b.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_f2e5b.dir\\Debug\\cmTC_f2e5b.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_49573.dir\\Debug\\\\" /Fd"cmTC_49573.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCCompilerABI.c"
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_f2e5b.dir\\Debug\\\\" /Fd"cmTC_f2e5b.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCCompilerABI.c"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35220 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_49573.dir\\Debug\\\\" /Fd"cmTC_49573.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCCompilerABI.c"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_f2e5b.dir\\Debug\\\\" /Fd"cmTC_f2e5b.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Program Files\\CMake\\share\\cmake-4.2\\Modules\\CMakeCCompilerABI.c"
           CMakeCCompilerABI.c
         Link:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9767nw\\Debug\\cmTC_49573.exe" /INCREMENTAL /ILK:"cmTC_49573.dir\\Debug\\cmTC_49573.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-9767nw/Debug/cmTC_49573.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-9767nw/Debug/cmTC_49573.lib" /MACHINE:X64  /machine:x64 cmTC_49573.dir\\Debug\\CMakeCCompilerABI.obj
-          cmTC_49573.vcxproj -> C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9767nw\\Debug\\cmTC_49573.exe
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-dn4c3a\\Debug\\cmTC_f2e5b.exe" /INCREMENTAL /ILK:"cmTC_f2e5b.dir\\Debug\\cmTC_f2e5b.ilk" /NOLOGO kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-dn4c3a/Debug/cmTC_f2e5b.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-dn4c3a/Debug/cmTC_f2e5b.lib" /MACHINE:X64  /machine:x64 cmTC_f2e5b.dir\\Debug\\CMakeCCompilerABI.obj
+          cmTC_f2e5b.vcxproj -> C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-dn4c3a\\Debug\\cmTC_f2e5b.exe
         FinalizeBuildStatus:
-          Deleting file "cmTC_49573.dir\\Debug\\cmTC_49573.tlog\\unsuccessfulbuild".
-          Touching "cmTC_49573.dir\\Debug\\cmTC_49573.tlog\\cmTC_49573.lastbuildstate".
-        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-9767nw\\cmTC_49573.vcxproj" (default targets).
+          Deleting file "cmTC_f2e5b.dir\\Debug\\cmTC_f2e5b.tlog\\unsuccessfulbuild".
+          Touching "cmTC_f2e5b.dir\\Debug\\cmTC_f2e5b.tlog\\cmTC_f2e5b.lastbuildstate".
+        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-dn4c3a\\cmTC_f2e5b.vcxproj" (default targets).
         
         Build succeeded.
             0 Warning(s)
             0 Error(s)
         
-        Time Elapsed 00:00:01.74
+        Time Elapsed 00:00:01.76
         
       exitCode: 0
   -
@@ -2290,6 +2314,9 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -2673,6 +2700,9 @@ events:
     found: "C:/Users/denko/AppData/Local/Programs/Python/Python314/python.exe"
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -2755,6 +2785,9 @@ events:
     found: false
     search_context:
       ENV{PATH}:
+        - "C:\\Program Files\\Git\\mingw64\\bin"
+        - "C:\\Program Files\\Git\\usr\\bin"
+        - "C:\\Users\\denko\\AppData\\Roaming\\SPB_Data\\bin"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\"
         - "C:\\Users\\denko\\AppData\\Local\\Programs\\Python\\Python314\\"
         - "C:\\Program Files (x86)\\Razer Chroma SDK\\bin"
@@ -2812,8 +2845,8 @@ events:
     checks:
       - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
     directories:
-      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-76zaq9"
-      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-76zaq9"
+      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-tbx55g"
+      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-tbx55g"
     cmakeVariables:
       CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
@@ -2821,39 +2854,39 @@ events:
       variable: "CMAKE_HAVE_LIBC_PTHREAD"
       cached: true
       stdout: |
-        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-76zaq9'
+        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-tbx55g'
         
-        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_46847.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_9c010.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.23+b0019275e for .NET Framework
-        Build started 11/01/2026 3:33:00 am.
+        Build started 11/01/2026 10:25:33 pm.
         
-        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\cmTC_46847.vcxproj" on node 1 (default targets).
+        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\cmTC_9c010.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\Debug\\".
-          Creating directory "cmTC_46847.dir\\Debug\\cmTC_46847.tlog\\".
+          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\Debug\\".
+          Creating directory "cmTC_9c010.dir\\Debug\\cmTC_9c010.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_46847.dir\\Debug\\cmTC_46847.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_46847.dir\\Debug\\cmTC_46847.tlog\\unsuccessfulbuild".
+          Creating "cmTC_9c010.dir\\Debug\\cmTC_9c010.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_9c010.dir\\Debug\\cmTC_9c010.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_46847.dir\\Debug\\\\" /Fd"cmTC_46847.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\src.c"
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_9c010.dir\\Debug\\\\" /Fd"cmTC_9c010.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\src.c"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35220 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_46847.dir\\Debug\\\\" /Fd"cmTC_46847.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\src.c"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CMAKE_HAVE_LIBC_PTHREAD /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_9c010.dir\\Debug\\\\" /Fd"cmTC_9c010.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\src.c"
           src.c
-        C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\src.c(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\cmTC_46847.vcxproj]
-        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\cmTC_46847.vcxproj" (default targets) -- FAILED.
+        C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\src.c(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\cmTC_9c010.vcxproj]
+        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\cmTC_9c010.vcxproj" (default targets) -- FAILED.
         
         Build FAILED.
         
-        "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\cmTC_46847.vcxproj" (default target) (1) ->
+        "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\cmTC_9c010.vcxproj" (default target) (1) ->
         (ClCompile target) -> 
-          C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\src.c(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-76zaq9\\cmTC_46847.vcxproj]
+          C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\src.c(1,10): error C1083: Cannot open include file: 'pthread.h': No such file or directory [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-tbx55g\\cmTC_9c010.vcxproj]
         
             0 Warning(s)
             1 Error(s)
         
-        Time Elapsed 00:00:01.09
+        Time Elapsed 00:00:01.12
         
       exitCode: 1
   -
@@ -2867,8 +2900,8 @@ events:
     checks:
       - "Looking for pthread_create in pthreads"
     directories:
-      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-je872k"
-      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-je872k"
+      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-5z7dhj"
+      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-5z7dhj"
     cmakeVariables:
       CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
@@ -2876,36 +2909,36 @@ events:
       variable: "CMAKE_HAVE_PTHREADS_CREATE"
       cached: true
       stdout: |
-        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-je872k'
+        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-5z7dhj'
         
-        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_62c0f.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_dac89.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.23+b0019275e for .NET Framework
-        Build started 11/01/2026 3:33:02 am.
+        Build started 11/01/2026 10:25:35 pm.
         
-        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\cmTC_62c0f.vcxproj" on node 1 (default targets).
+        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\cmTC_dac89.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\Debug\\".
-          Creating directory "cmTC_62c0f.dir\\Debug\\cmTC_62c0f.tlog\\".
+          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\Debug\\".
+          Creating directory "cmTC_dac89.dir\\Debug\\cmTC_dac89.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_62c0f.dir\\Debug\\cmTC_62c0f.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_62c0f.dir\\Debug\\cmTC_62c0f.tlog\\unsuccessfulbuild".
+          Creating "cmTC_dac89.dir\\Debug\\cmTC_dac89.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_dac89.dir\\Debug\\cmTC_dac89.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_62c0f.dir\\Debug\\\\" /Fd"cmTC_62c0f.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\CheckFunctionExists.c"
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_dac89.dir\\Debug\\\\" /Fd"cmTC_dac89.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\CheckFunctionExists.c"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35220 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_62c0f.dir\\Debug\\\\" /Fd"cmTC_62c0f.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\CheckFunctionExists.c"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_dac89.dir\\Debug\\\\" /Fd"cmTC_dac89.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\CheckFunctionExists.c"
           CheckFunctionExists.c
         Link:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\Debug\\cmTC_62c0f.exe" /INCREMENTAL /ILK:"cmTC_62c0f.dir\\Debug\\cmTC_62c0f.ilk" /NOLOGO pthreads.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-je872k/Debug/cmTC_62c0f.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-je872k/Debug/cmTC_62c0f.lib" /MACHINE:X64  /machine:x64 cmTC_62c0f.dir\\Debug\\CheckFunctionExists.obj
-        LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\cmTC_62c0f.vcxproj]
-        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\cmTC_62c0f.vcxproj" (default targets) -- FAILED.
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\Debug\\cmTC_dac89.exe" /INCREMENTAL /ILK:"cmTC_dac89.dir\\Debug\\cmTC_dac89.ilk" /NOLOGO pthreads.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-5z7dhj/Debug/cmTC_dac89.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-5z7dhj/Debug/cmTC_dac89.lib" /MACHINE:X64  /machine:x64 cmTC_dac89.dir\\Debug\\CheckFunctionExists.obj
+        LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\cmTC_dac89.vcxproj]
+        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\cmTC_dac89.vcxproj" (default targets) -- FAILED.
         
         Build FAILED.
         
-        "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\cmTC_62c0f.vcxproj" (default target) (1) ->
+        "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\cmTC_dac89.vcxproj" (default target) (1) ->
         (Link target) -> 
-          LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-je872k\\cmTC_62c0f.vcxproj]
+          LINK : fatal error LNK1104: cannot open file 'pthreads.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-5z7dhj\\cmTC_dac89.vcxproj]
         
             0 Warning(s)
             1 Error(s)
@@ -2924,8 +2957,8 @@ events:
     checks:
       - "Looking for pthread_create in pthread"
     directories:
-      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-2xipfa"
-      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-2xipfa"
+      source: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-g4u1df"
+      binary: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-g4u1df"
     cmakeVariables:
       CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
       CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
@@ -2933,41 +2966,41 @@ events:
       variable: "CMAKE_HAVE_PTHREAD_CREATE"
       cached: true
       stdout: |
-        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-2xipfa'
+        Change Dir: 'C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-g4u1df'
         
-        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_01059.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
+        Run Build Command(s): "C:/Program Files (x86)/Microsoft Visual Studio/2022/BuildTools/MSBuild/Current/Bin/amd64/MSBuild.exe" cmTC_dd4d2.vcxproj /p:Configuration=Debug /p:Platform=x64 /p:VisualStudioVersion=17.0 /v:n
         MSBuild version 17.14.23+b0019275e for .NET Framework
-        Build started 11/01/2026 3:33:04 am.
+        Build started 11/01/2026 10:25:37 pm.
         
-        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\cmTC_01059.vcxproj" on node 1 (default targets).
+        Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\cmTC_dd4d2.vcxproj" on node 1 (default targets).
         PrepareForBuild:
           Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
-          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\Debug\\".
-          Creating directory "cmTC_01059.dir\\Debug\\cmTC_01059.tlog\\".
+          Creating directory "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\Debug\\".
+          Creating directory "cmTC_dd4d2.dir\\Debug\\cmTC_dd4d2.tlog\\".
         InitializeBuildStatus:
-          Creating "cmTC_01059.dir\\Debug\\cmTC_01059.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
-          Touching "cmTC_01059.dir\\Debug\\cmTC_01059.tlog\\unsuccessfulbuild".
+          Creating "cmTC_dd4d2.dir\\Debug\\cmTC_dd4d2.tlog\\unsuccessfulbuild" because "AlwaysCreate" was specified.
+          Touching "cmTC_dd4d2.dir\\Debug\\cmTC_dd4d2.tlog\\unsuccessfulbuild".
         ClCompile:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_01059.dir\\Debug\\\\" /Fd"cmTC_01059.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\CheckFunctionExists.c"
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\CL.exe /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_dd4d2.dir\\Debug\\\\" /Fd"cmTC_dd4d2.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\CheckFunctionExists.c"
           Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35220 for x64
           Copyright (C) Microsoft Corporation.  All rights reserved.
-          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_01059.dir\\Debug\\\\" /Fd"cmTC_01059.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\CheckFunctionExists.c"
+          cl /c /Zi /W1 /WX- /diagnostics:column /Od /Ob0 /D _MBCS /D WIN32 /D _WINDOWS /D CHECK_FUNCTION_EXISTS=pthread_create /D _MBCS /D "CMAKE_INTDIR=\\"Debug\\"" /RTC1 /MDd /Fo"cmTC_dd4d2.dir\\Debug\\\\" /Fd"cmTC_dd4d2.dir\\Debug\\vc143.pdb" /external:W1 /TC /errorReport:queue "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\CheckFunctionExists.c"
           CheckFunctionExists.c
         Link:
-          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\Debug\\cmTC_01059.exe" /INCREMENTAL /ILK:"cmTC_01059.dir\\Debug\\cmTC_01059.ilk" /NOLOGO pthread.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-2xipfa/Debug/cmTC_01059.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-2xipfa/Debug/cmTC_01059.lib" /MACHINE:X64  /machine:x64 cmTC_01059.dir\\Debug\\CheckFunctionExists.obj
-        LINK : fatal error LNK1104: cannot open file 'pthread.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\cmTC_01059.vcxproj]
-        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\cmTC_01059.vcxproj" (default targets) -- FAILED.
+          C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\VC\\Tools\\MSVC\\14.44.35207\\bin\\HostX64\\x64\\link.exe /OUT:"C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\Debug\\cmTC_dd4d2.exe" /INCREMENTAL /ILK:"cmTC_dd4d2.dir\\Debug\\cmTC_dd4d2.ilk" /NOLOGO pthread.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-g4u1df/Debug/cmTC_dd4d2.pdb" /SUBSYSTEM:CONSOLE /TLBID:1 /IMPLIB:"C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/CMakeScratch/TryCompile-g4u1df/Debug/cmTC_dd4d2.lib" /MACHINE:X64  /machine:x64 cmTC_dd4d2.dir\\Debug\\CheckFunctionExists.obj
+        LINK : fatal error LNK1104: cannot open file 'pthread.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\cmTC_dd4d2.vcxproj]
+        Done Building Project "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\cmTC_dd4d2.vcxproj" (default targets) -- FAILED.
         
         Build FAILED.
         
-        "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\cmTC_01059.vcxproj" (default target) (1) ->
+        "C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\cmTC_dd4d2.vcxproj" (default target) (1) ->
         (Link target) -> 
-          LINK : fatal error LNK1104: cannot open file 'pthread.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-2xipfa\\cmTC_01059.vcxproj]
+          LINK : fatal error LNK1104: cannot open file 'pthread.lib' [C:\\Users\\denko\\Claude\\DAFX_2_Daisy_lib\\build\\CMakeFiles\\CMakeScratch\\TryCompile-g4u1df\\cmTC_dd4d2.vcxproj]
         
             0 Warning(s)
             1 Error(s)
         
-        Time Elapsed 00:00:01.15
+        Time Elapsed 00:00:01.16
         
       exitCode: 1
 ...

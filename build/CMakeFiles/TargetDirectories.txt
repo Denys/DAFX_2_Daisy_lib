@@ -3,7 +3,7 @@ C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/RUN_TESTS.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/INSTALL.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/ALL_BUILD.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/CMakeFiles/ZERO_CHECK.dir
-C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/tests/CMakeFiles/run_tests.dir
+C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/tests/CMakeFiles/unit_tests.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/tests/CMakeFiles/RUN_TESTS.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/tests/CMakeFiles/INSTALL.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-build/CMakeFiles/RUN_TESTS.dir
@@ -19,8 +19,3 @@ C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-build/googletest/C
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-build/googletest/CMakeFiles/RUN_TESTS.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-build/googletest/CMakeFiles/INSTALL.dir
 C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/_deps/googletest-build/googletest/CMakeFiles/ALL_BUILD.dir
-C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/examples/CMakeFiles/example_guitar_amp.dir
-C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/examples/CMakeFiles/example_parametric_eq.dir
-C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/examples/CMakeFiles/example_modulation.dir
-C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/examples/CMakeFiles/RUN_TESTS.dir
-C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/examples/CMakeFiles/INSTALL.dir

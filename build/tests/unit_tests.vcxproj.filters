@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_tube.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_lowshelving.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_highshelving.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_peakfilter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_vibrato.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_ringmod.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_stereopan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_noisegate.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_wahwah.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_circularbuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_princarg.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_windows.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_fft_handler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_robotization.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_whisperization.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_spectral_filter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_phase_vocoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\test_crosstalk_canceller.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\denko\Claude\DAFX_2_Daisy_lib\tests\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8585D061-95AC-37A0-AFED-D6524C654BE2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

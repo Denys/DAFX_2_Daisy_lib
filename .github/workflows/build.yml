@@ -1,0 +1,91 @@
+# DAFX-to-DaisySP CI/CD Pipeline
+# Builds and tests the library on multiple platforms
+
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ ninja-build
+    
+    - name: Configure CMake
+      run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C Release --output-on-failure --verbose
+
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C Release --output-on-failure --verbose
+
+  build-macos:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install dependencies
+      run: brew install cmake ninja
+    
+    - name: Configure CMake
+      run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+    
+    - name: Build
+      run: cmake --build build --config Release
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest -C Release --output-on-failure --verbose
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Check file formatting
+      run: |
+        # Check for trailing whitespace
+        ! grep -r --include="*.cpp" --include="*.h" '[[:blank:]]$' src/ || echo "Warning: trailing whitespace found"
+        
+    - name: Check header guards
+      run: |
+        # Verify all headers have include guards
+        for f in $(find src -name "*.h"); do
+          if ! grep -q "#pragma once\|#ifndef" "$f"; then
+            echo "Missing include guard: $f"
+          fi
+        done

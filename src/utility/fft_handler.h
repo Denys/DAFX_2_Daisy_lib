@@ -275,7 +275,7 @@ private:
     size_t stages = Log2(N);
 
     for (size_t stage = 0; stage < stages; ++stage) {
-      size_t block_size = 1 << (stage + 1);
+      size_t block_size = static_cast<size_t>(1) << (stage + 1);
       size_t half_block = block_size / 2;
       size_t twiddle_step = N / block_size;
 
@@ -304,7 +304,7 @@ private:
    */
   static constexpr size_t Log2(size_t n) {
     size_t log = 0;
-    while ((1 << log) < n)
+    while ((static_cast<size_t>(1) << log) < n)
       ++log;
     return log;
   }

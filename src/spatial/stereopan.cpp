@@ -14,21 +14,14 @@ void StereoPan::Init() {
 }
 
 void StereoPan::RecalculateGains() {
-  // Convert angles to radians
-  float theta_rad = pan_ * 90.0f * M_PI / 180.0f;
-  float lsbase_rad = speaker_angle_ * M_PI / 180.0f;
+  // Use equal-power cosine pan law
+  // pan_ ranges from -1 (full left) to +1 (full right)
+  // Map to angle: -1 -> 0, 0 -> π/4, +1 -> π/2
+  float angle = (pan_ + 1.0f) * 0.25f * M_PI; // 0 to π/2
 
-  // Compute gain factors with tangent law
-  float g2 = 1.0f;
-  float g1 = -(std::tan(theta_rad) - std::tan(lsbase_rad)) /
-             (std::tan(theta_rad) + std::tan(lsbase_rad) + 1e-10f);
-
-  // Normalize sum-of-squares
-  float sum_sq = g1 * g1 + g2 * g2;
-  float norm = std::sqrt(sum_sq);
-
-  gain_left_ = g1 / norm;
-  gain_right_ = g2 / norm;
+  // Equal-power: left = cos(angle), right = sin(angle)
+  gain_left_ = std::cos(angle);
+  gain_right_ = std::sin(angle);
 }
 
 void StereoPan::Process(const float &in, float *out_left, float *out_right) {

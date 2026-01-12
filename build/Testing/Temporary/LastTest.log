@@ -1,19 +1,388 @@
-Start testing: Jan 11 03:34 W. Europe Standard Time
+Start testing: Jan 12 05:10 W. Europe Standard Time
 ----------------------------------------------------------
-Test not available without configuration.  (Missing "-C <config>"?)
 1/1 Testing: UnitTests
 1/1 Test: UnitTests
-Command: "NOT_AVAILABLE"
+Command: "C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/tests/Release/unit_tests.exe"
 Directory: C:/Users/denko/Claude/DAFX_2_Daisy_lib/build/tests
-"UnitTests" start time: 
+"UnitTests" start time: Jan 12 05:10 W. Europe Standard Time
 Output:
 ----------------------------------------------------------
+[==========] Running 151 tests from 21 test suites.
+[----------] Global test environment set-up.
+[----------] 9 tests from TubeTest
+[ RUN      ] TubeTest.Initialization
+[       OK ] TubeTest.Initialization (0 ms)
+[ RUN      ] TubeTest.ParameterSetting
+[       OK ] TubeTest.ParameterSetting (0 ms)
+[ RUN      ] TubeTest.ZeroInput
+[       OK ] TubeTest.ZeroInput (0 ms)
+[ RUN      ] TubeTest.UnityGain
+[       OK ] TubeTest.UnityGain (0 ms)
+[ RUN      ] TubeTest.DryWetMix
+[       OK ] TubeTest.DryWetMix (0 ms)
+[ RUN      ] TubeTest.ParameterRanges
+[       OK ] TubeTest.ParameterRanges (0 ms)
+[ RUN      ] TubeTest.OutputRange
+[       OK ] TubeTest.OutputRange (0 ms)
+[ RUN      ] TubeTest.StatePreservation
+[       OK ] TubeTest.StatePreservation (0 ms)
+[ RUN      ] TubeTest.DifferentSampleRates
+[       OK ] TubeTest.DifferentSampleRates (0 ms)
+[----------] 9 tests from TubeTest (0 ms total)
+
+[----------] 8 tests from LowShelvingTest
+[ RUN      ] LowShelvingTest.Initialization
+[       OK ] LowShelvingTest.Initialization (0 ms)
+[ RUN      ] LowShelvingTest.ParameterSetting
+[       OK ] LowShelvingTest.ParameterSetting (0 ms)
+[ RUN      ] LowShelvingTest.ZeroInput
+[       OK ] LowShelvingTest.ZeroInput (0 ms)
+[ RUN      ] LowShelvingTest.UnityGain
+[       OK ] LowShelvingTest.UnityGain (0 ms)
+[ RUN      ] LowShelvingTest.OutputRange
+[       OK ] LowShelvingTest.OutputRange (0 ms)
+[ RUN      ] LowShelvingTest.DifferentSampleRates
+[       OK ] LowShelvingTest.DifferentSampleRates (0 ms)
+[ RUN      ] LowShelvingTest.FrequencyRange
+[       OK ] LowShelvingTest.FrequencyRange (0 ms)
+[ RUN      ] LowShelvingTest.GainRange
+[       OK ] LowShelvingTest.GainRange (0 ms)
+[----------] 8 tests from LowShelvingTest (0 ms total)
+
+[----------] 6 tests from HighShelvingTest
+[ RUN      ] HighShelvingTest.Initialization
+[       OK ] HighShelvingTest.Initialization (0 ms)
+[ RUN      ] HighShelvingTest.ParameterSetting
+[       OK ] HighShelvingTest.ParameterSetting (0 ms)
+[ RUN      ] HighShelvingTest.ZeroInput
+[       OK ] HighShelvingTest.ZeroInput (0 ms)
+[ RUN      ] HighShelvingTest.UnityGain
+[       OK ] HighShelvingTest.UnityGain (0 ms)
+[ RUN      ] HighShelvingTest.OutputRange
+[       OK ] HighShelvingTest.OutputRange (0 ms)
+[ RUN      ] HighShelvingTest.DifferentSampleRates
+[       OK ] HighShelvingTest.DifferentSampleRates (0 ms)
+[----------] 6 tests from HighShelvingTest (0 ms total)
+
+[----------] 7 tests from PeakFilterTest
+[ RUN      ] PeakFilterTest.Initialization
+[       OK ] PeakFilterTest.Initialization (0 ms)
+[ RUN      ] PeakFilterTest.ParameterSetting
+[       OK ] PeakFilterTest.ParameterSetting (0 ms)
+[ RUN      ] PeakFilterTest.ZeroInput
+[       OK ] PeakFilterTest.ZeroInput (0 ms)
+[ RUN      ] PeakFilterTest.UnityGain
+[       OK ] PeakFilterTest.UnityGain (0 ms)
+[ RUN      ] PeakFilterTest.OutputRange
+[       OK ] PeakFilterTest.OutputRange (0 ms)
+[ RUN      ] PeakFilterTest.DifferentSampleRates
+[       OK ] PeakFilterTest.DifferentSampleRates (0 ms)
+[ RUN      ] PeakFilterTest.BandwidthRange
+[       OK ] PeakFilterTest.BandwidthRange (0 ms)
+[----------] 7 tests from PeakFilterTest (0 ms total)
+
+[----------] 7 tests from VibratoTest
+[ RUN      ] VibratoTest.Initialization
+[       OK ] VibratoTest.Initialization (0 ms)
+[ RUN      ] VibratoTest.ParameterSetting
+[       OK ] VibratoTest.ParameterSetting (0 ms)
+[ RUN      ] VibratoTest.ZeroInput
+[       OK ] VibratoTest.ZeroInput (0 ms)
+[ RUN      ] VibratoTest.OutputRange
+[       OK ] VibratoTest.OutputRange (0 ms)
+[ RUN      ] VibratoTest.ModulationEffect
+[       OK ] VibratoTest.ModulationEffect (0 ms)
+[ RUN      ] VibratoTest.DifferentSampleRates
+[       OK ] VibratoTest.DifferentSampleRates (0 ms)
+[ RUN      ] VibratoTest.FrequencyRange
+[       OK ] VibratoTest.FrequencyRange (0 ms)
+[----------] 7 tests from VibratoTest (0 ms total)
+
+[----------] 7 tests from RingModTest
+[ RUN      ] RingModTest.Initialization
+[       OK ] RingModTest.Initialization (0 ms)
+[ RUN      ] RingModTest.ParameterSetting
+[       OK ] RingModTest.ParameterSetting (0 ms)
+[ RUN      ] RingModTest.ZeroInput
+[       OK ] RingModTest.ZeroInput (0 ms)
+[ RUN      ] RingModTest.OutputRange
+[       OK ] RingModTest.OutputRange (0 ms)
+[ RUN      ] RingModTest.Modulation
+[       OK ] RingModTest.Modulation (0 ms)
+[ RUN      ] RingModTest.DifferentSampleRates
+[       OK ] RingModTest.DifferentSampleRates (0 ms)
+[ RUN      ] RingModTest.FrequencyRange
+[       OK ] RingModTest.FrequencyRange (0 ms)
+[----------] 7 tests from RingModTest (0 ms total)
+
+[----------] 8 tests from StereoPanTest
+[ RUN      ] StereoPanTest.Initialization
+[       OK ] StereoPanTest.Initialization (0 ms)
+[ RUN      ] StereoPanTest.ParameterSetting
+[       OK ] StereoPanTest.ParameterSetting (0 ms)
+[ RUN      ] StereoPanTest.ZeroInput
+[       OK ] StereoPanTest.ZeroInput (0 ms)
+[ RUN      ] StereoPanTest.CenterPan
+[       OK ] StereoPanTest.CenterPan (0 ms)
+[ RUN      ] StereoPanTest.FullLeftPan
+[       OK ] StereoPanTest.FullLeftPan (0 ms)
+[ RUN      ] StereoPanTest.FullRightPan
+[       OK ] StereoPanTest.FullRightPan (0 ms)
+[ RUN      ] StereoPanTest.OutputRange
+[       OK ] StereoPanTest.OutputRange (0 ms)
+[ RUN      ] StereoPanTest.PanRange
+[       OK ] StereoPanTest.PanRange (0 ms)
+[----------] 8 tests from StereoPanTest (0 ms total)
+
+[----------] 8 tests from NoiseGateTest
+[ RUN      ] NoiseGateTest.Initialization
+[       OK ] NoiseGateTest.Initialization (0 ms)
+[ RUN      ] NoiseGateTest.ParameterSetting
+[       OK ] NoiseGateTest.ParameterSetting (0 ms)
+[ RUN      ] NoiseGateTest.ZeroInput
+[       OK ] NoiseGateTest.ZeroInput (0 ms)
+[ RUN      ] NoiseGateTest.LoudSignalPassthrough
+[       OK ] NoiseGateTest.LoudSignalPassthrough (0 ms)
+[ RUN      ] NoiseGateTest.QuietSignalGated
+[       OK ] NoiseGateTest.QuietSignalGated (0 ms)
+[ RUN      ] NoiseGateTest.OutputRange
+[       OK ] NoiseGateTest.OutputRange (0 ms)
+[ RUN      ] NoiseGateTest.DifferentSampleRates
+[       OK ] NoiseGateTest.DifferentSampleRates (0 ms)
+[ RUN      ] NoiseGateTest.ParameterRanges
+[       OK ] NoiseGateTest.ParameterRanges (0 ms)
+[----------] 8 tests from NoiseGateTest (0 ms total)
+
+[----------] 7 tests from WahWahTest
+[ RUN      ] WahWahTest.Initialization
+[       OK ] WahWahTest.Initialization (0 ms)
+[ RUN      ] WahWahTest.ParameterSetting
+[       OK ] WahWahTest.ParameterSetting (0 ms)
+[ RUN      ] WahWahTest.ZeroInput
+[       OK ] WahWahTest.ZeroInput (0 ms)
+[ RUN      ] WahWahTest.OutputRange
+[       OK ] WahWahTest.OutputRange (0 ms)
+[ RUN      ] WahWahTest.FilteringEffect
+[       OK ] WahWahTest.FilteringEffect (0 ms)
+[ RUN      ] WahWahTest.DifferentSampleRates
+[       OK ] WahWahTest.DifferentSampleRates (0 ms)
+[ RUN      ] WahWahTest.ParameterRanges
+[       OK ] WahWahTest.ParameterRanges (0 ms)
+[----------] 7 tests from WahWahTest (0 ms total)
+
+[----------] 9 tests from CircularBufferTest
+[ RUN      ] CircularBufferTest.Initialization
+[       OK ] CircularBufferTest.Initialization (0 ms)
+[ RUN      ] CircularBufferTest.WriteRead
+[       OK ] CircularBufferTest.WriteRead (0 ms)
+[ RUN      ] CircularBufferTest.WrapAround
+[       OK ] CircularBufferTest.WrapAround (0 ms)
+[ RUN      ] CircularBufferTest.LinearInterpolation
+[       OK ] CircularBufferTest.LinearInterpolation (0 ms)
+[ RUN      ] CircularBufferTest.CubicInterpolation
+[       OK ] CircularBufferTest.CubicInterpolation (0 ms)
+[ RUN      ] CircularBufferTest.TapAccess
+[       OK ] CircularBufferTest.TapAccess (0 ms)
+[ RUN      ] CircularBufferTest.CustomSize
+[       OK ] CircularBufferTest.CustomSize (0 ms)
+[ RUN      ] CircularBufferTest.Clear
+[       OK ] CircularBufferTest.Clear (0 ms)
+[ RUN      ] CircularBufferTest.DelayBounds
+[       OK ] CircularBufferTest.DelayBounds (0 ms)
+[----------] 9 tests from CircularBufferTest (0 ms total)
+
+[----------] 1 test from DynamicCircularBufferTest
+[ RUN      ] DynamicCircularBufferTest.BasicOperations
+[       OK ] DynamicCircularBufferTest.BasicOperations (0 ms)
+[----------] 1 test from DynamicCircularBufferTest (0 ms total)
+
+[----------] 8 tests from PrincargTest
+[ RUN      ] PrincargTest.WithinRange
+[       OK ] PrincargTest.WithinRange (0 ms)
+[ RUN      ] PrincargTest.PositiveOverflow
+[       OK ] PrincargTest.PositiveOverflow (0 ms)
+[ RUN      ] PrincargTest.NegativeOverflow
+[       OK ] PrincargTest.NegativeOverflow (0 ms)
+[ RUN      ] PrincargTest.MultipleWraps
+[       OK ] PrincargTest.MultipleWraps (0 ms)
+[ RUN      ] PrincargTest.MATLABCompatibility
+[       OK ] PrincargTest.MATLABCompatibility (0 ms)
+[ RUN      ] PrincargTest.ArrayProcessing
+[       OK ] PrincargTest.ArrayProcessing (0 ms)
+[ RUN      ] PrincargTest.PhaseDifference
+[       OK ] PrincargTest.PhaseDifference (0 ms)
+[ RUN      ] PrincargTest.EdgeCases
+[       OK ] PrincargTest.EdgeCases (0 ms)
+[----------] 8 tests from PrincargTest (0 ms total)
+
+[----------] 11 tests from WindowsTest
+[ RUN      ] WindowsTest.Hanning
+[       OK ] WindowsTest.Hanning (0 ms)
+[ RUN      ] WindowsTest.Hamming
+[       OK ] WindowsTest.Hamming (0 ms)
+[ RUN      ] WindowsTest.BlackmanHarris
+[       OK ] WindowsTest.BlackmanHarris (0 ms)
+[ RUN      ] WindowsTest.Blackman
+[       OK ] WindowsTest.Blackman (0 ms)
+[ RUN      ] WindowsTest.Triangular
+[       OK ] WindowsTest.Triangular (0 ms)
+[ RUN      ] WindowsTest.Rectangular
+[       OK ] WindowsTest.Rectangular (0 ms)
+[ RUN      ] WindowsTest.Kaiser
+[       OK ] WindowsTest.Kaiser (0 ms)
+[ RUN      ] WindowsTest.Apply
+[       OK ] WindowsTest.Apply (0 ms)
+[ RUN      ] WindowsTest.Sum
+[       OK ] WindowsTest.Sum (0 ms)
+[ RUN      ] WindowsTest.SumSquared
+[       OK ] WindowsTest.SumSquared (0 ms)
+[ RUN      ] WindowsTest.DifferentSizes
+[       OK ] WindowsTest.DifferentSizes (0 ms)
+[----------] 11 tests from WindowsTest (0 ms total)
+
+[----------] 9 tests from FFTHandlerTest
+[ RUN      ] FFTHandlerTest.Initialization
+[       OK ] FFTHandlerTest.Initialization (0 ms)
+[ RUN      ] FFTHandlerTest.DCSignal
+[       OK ] FFTHandlerTest.DCSignal (0 ms)
+[ RUN      ] FFTHandlerTest.SingleFrequency
+[       OK ] FFTHandlerTest.SingleFrequency (0 ms)
+[ RUN      ] FFTHandlerTest.RoundTrip
+[       OK ] FFTHandlerTest.RoundTrip (0 ms)
+[ RUN      ] FFTHandlerTest.ImpulseResponse
+[       OK ] FFTHandlerTest.ImpulseResponse (0 ms)
+[ RUN      ] FFTHandlerTest.DelayedImpulse
+[       OK ] FFTHandlerTest.DelayedImpulse (0 ms)
+[ RUN      ] FFTHandlerTest.PolarReconstruction
+[       OK ] FFTHandlerTest.PolarReconstruction (0 ms)
+[ RUN      ] FFTHandlerTest.FFTShift
+[       OK ] FFTHandlerTest.FFTShift (0 ms)
+[ RUN      ] FFTHandlerTest.ComplexInterface
+[       OK ] FFTHandlerTest.ComplexInterface (0 ms)
+[----------] 9 tests from FFTHandlerTest (0 ms total)
+
+[----------] 2 tests from FFTHandlerSizesTest
+[ RUN      ] FFTHandlerSizesTest.Size512
+[       OK ] FFTHandlerSizesTest.Size512 (0 ms)
+[ RUN      ] FFTHandlerSizesTest.Size1024
+[       OK ] FFTHandlerSizesTest.Size1024 (0 ms)
+[----------] 2 tests from FFTHandlerSizesTest (0 ms total)
+
+[----------] 2 tests from ComplexTest
+[ RUN      ] ComplexTest.Arithmetic
+[       OK ] ComplexTest.Arithmetic (0 ms)
+[ RUN      ] ComplexTest.MagnitudePhase
+[       OK ] ComplexTest.MagnitudePhase (0 ms)
+[----------] 2 tests from ComplexTest (0 ms total)
+
+[----------] 8 tests from RobotizationTest
+[ RUN      ] RobotizationTest.Initialization
+[       OK ] RobotizationTest.Initialization (0 ms)
+[ RUN      ] RobotizationTest.HopSizeParameter
+[       OK ] RobotizationTest.HopSizeParameter (0 ms)
+[ RUN      ] RobotizationTest.MixParameter
+[       OK ] RobotizationTest.MixParameter (0 ms)
+[ RUN      ] RobotizationTest.ZeroInput
+[       OK ] RobotizationTest.ZeroInput (0 ms)
+[ RUN      ] RobotizationTest.OutputFinite
+[       OK ] RobotizationTest.OutputFinite (0 ms)
+[ RUN      ] RobotizationTest.DryMix
+[       OK ] RobotizationTest.DryMix (0 ms)
+[ RUN      ] RobotizationTest.DifferentSampleRates
+[       OK ] RobotizationTest.DifferentSampleRates (0 ms)
+[ RUN      ] RobotizationTest.SingleSampleProcess
+[       OK ] RobotizationTest.SingleSampleProcess (0 ms)
+[----------] 8 tests from RobotizationTest (1 ms total)
+
+[----------] 10 tests from WhisperizationTest
+[ RUN      ] WhisperizationTest.Initialization
+[       OK ] WhisperizationTest.Initialization (0 ms)
+[ RUN      ] WhisperizationTest.HopSizeParameter
+[       OK ] WhisperizationTest.HopSizeParameter (0 ms)
+[ RUN      ] WhisperizationTest.MixParameter
+[       OK ] WhisperizationTest.MixParameter (0 ms)
+[ RUN      ] WhisperizationTest.ZeroInput
+[       OK ] WhisperizationTest.ZeroInput (0 ms)
+[ RUN      ] WhisperizationTest.OutputFinite
+[       OK ] WhisperizationTest.OutputFinite (0 ms)
+[ RUN      ] WhisperizationTest.DryMix
+[       OK ] WhisperizationTest.DryMix (0 ms)
+[ RUN      ] WhisperizationTest.RandomPhaseVariation
+[       OK ] WhisperizationTest.RandomPhaseVariation (1 ms)
+[ RUN      ] WhisperizationTest.DifferentSampleRates
+[       OK ] WhisperizationTest.DifferentSampleRates (0 ms)
+[ RUN      ] WhisperizationTest.SingleSampleProcess
+[       OK ] WhisperizationTest.SingleSampleProcess (0 ms)
+[ RUN      ] WhisperizationTest.SeedReproducibility
+[       OK ] WhisperizationTest.SeedReproducibility (0 ms)
+[----------] 10 tests from WhisperizationTest (5 ms total)
+
+[----------] 8 tests from SpectralFilterTest
+[ RUN      ] SpectralFilterTest.Initialization
+[       OK ] SpectralFilterTest.Initialization (0 ms)
+[ RUN      ] SpectralFilterTest.ZeroInput
+[       OK ] SpectralFilterTest.ZeroInput (0 ms)
+[ RUN      ] SpectralFilterTest.OutputRange
+[       OK ] SpectralFilterTest.OutputRange (0 ms)
+[ RUN      ] SpectralFilterTest.SetBandpass
+[       OK ] SpectralFilterTest.SetBandpass (0 ms)
+[ RUN      ] SpectralFilterTest.SetLowpass
+[       OK ] SpectralFilterTest.SetLowpass (0 ms)
+[ RUN      ] SpectralFilterTest.SetHighpass
+[       OK ] SpectralFilterTest.SetHighpass (0 ms)
+[ RUN      ] SpectralFilterTest.DifferentSampleRates
+[       OK ] SpectralFilterTest.DifferentSampleRates (0 ms)
+[ RUN      ] SpectralFilterTest.ProcessContinuity
+[       OK ] SpectralFilterTest.ProcessContinuity (0 ms)
+[----------] 8 tests from SpectralFilterTest (0 ms total)
+
+[----------] 8 tests from PhaseVocoderTest
+[ RUN      ] PhaseVocoderTest.Initialization
+[       OK ] PhaseVocoderTest.Initialization (0 ms)
+[ RUN      ] PhaseVocoderTest.SetPitchRatio
+[       OK ] PhaseVocoderTest.SetPitchRatio (0 ms)
+[ RUN      ] PhaseVocoderTest.PitchRatioClamping
+[       OK ] PhaseVocoderTest.PitchRatioClamping (0 ms)
+[ RUN      ] PhaseVocoderTest.ZeroInput
+[       OK ] PhaseVocoderTest.ZeroInput (0 ms)
+[ RUN      ] PhaseVocoderTest.OutputFinite
+[       OK ] PhaseVocoderTest.OutputFinite (1 ms)
+[ RUN      ] PhaseVocoderTest.UnityRatio
+[       OK ] PhaseVocoderTest.UnityRatio (1 ms)
+[ RUN      ] PhaseVocoderTest.DifferentSampleRates
+[       OK ] PhaseVocoderTest.DifferentSampleRates (0 ms)
+[ RUN      ] PhaseVocoderTest.OutputRange
+[       OK ] PhaseVocoderTest.OutputRange (2 ms)
+[----------] 8 tests from PhaseVocoderTest (7 ms total)
+
+[----------] 8 tests from CrosstalkCancellerTest
+[ RUN      ] CrosstalkCancellerTest.Initialization
+[       OK ] CrosstalkCancellerTest.Initialization (0 ms)
+[ RUN      ] CrosstalkCancellerTest.SetSpeakerAngle
+[       OK ] CrosstalkCancellerTest.SetSpeakerAngle (0 ms)
+[ RUN      ] CrosstalkCancellerTest.SetRegularization
+[       OK ] CrosstalkCancellerTest.SetRegularization (0 ms)
+[ RUN      ] CrosstalkCancellerTest.ZeroInput
+[       OK ] CrosstalkCancellerTest.ZeroInput (0 ms)
+[ RUN      ] CrosstalkCancellerTest.StereoOutput
+[       OK ] CrosstalkCancellerTest.StereoOutput (0 ms)
+[ RUN      ] CrosstalkCancellerTest.OutputFinite
+[       OK ] CrosstalkCancellerTest.OutputFinite (0 ms)
+[ RUN      ] CrosstalkCancellerTest.DifferentSampleRates
+[       OK ] CrosstalkCancellerTest.DifferentSampleRates (0 ms)
+[ RUN      ] CrosstalkCancellerTest.OutputRange
+[       OK ] CrosstalkCancellerTest.OutputRange (1 ms)
+[----------] 8 tests from CrosstalkCancellerTest (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 151 tests from 21 test suites ran. (18 ms total)
+[  PASSED  ] 151 tests.
 <end of output>
-Test time =   0.00 sec
+Test time =   0.07 sec
 ----------------------------------------------------------
 Test Passed.
-"UnitTests" end time: Jan 11 03:34 W. Europe Standard Time
+"UnitTests" end time: Jan 12 05:10 W. Europe Standard Time
 "UnitTests" time elapsed: 00:00:00
 ----------------------------------------------------------
 
-End testing: Jan 11 03:34 W. Europe Standard Time
+End testing: Jan 12 05:10 W. Europe Standard Time

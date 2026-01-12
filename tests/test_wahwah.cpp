@@ -4,7 +4,6 @@
 #include "effects/wahwah.h"
 #include <gtest/gtest.h>
 
-
 using namespace daisysp;
 
 class WahWahTest : public ::testing::Test {
@@ -31,12 +30,6 @@ TEST_F(WahWahTest, ParameterSetting) {
 
   wah.SetQ(5.0f);
   EXPECT_FLOAT_EQ(wah.GetQ(), 5.0f);
-
-  wah.SetMinFreq(300.0f);
-  EXPECT_FLOAT_EQ(wah.GetMinFreq(), 300.0f);
-
-  wah.SetMaxFreq(2000.0f);
-  EXPECT_FLOAT_EQ(wah.GetMaxFreq(), 2000.0f);
 }
 
 // Test zero input

@@ -31,8 +31,10 @@ float RingModulator::Process(const float &in) {
     phase_ -= 2.0f * M_PI;
   }
 
-  // Ring modulation: multiply input by modulated sine wave
-  float out = in * (1.0f + depth_ * mod);
+  // Ring modulation: multiply input by sine wave
+  // depth controls blend between dry (in) and ring-modulated (in * mod)
+  float ring_out = in * mod;
+  float out = (1.0f - depth_) * in + depth_ * ring_out;
 
   return out;
 }

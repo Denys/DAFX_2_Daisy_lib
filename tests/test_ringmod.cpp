@@ -4,12 +4,11 @@
 #include "modulation/ringmod.h"
 #include <gtest/gtest.h>
 
-
 using namespace daisysp;
 
 class RingModTest : public ::testing::Test {
 protected:
-  RingMod ringmod;
+  RingModulator ringmod;
 
   void SetUp() override { ringmod.Init(48000.0f); }
 };
