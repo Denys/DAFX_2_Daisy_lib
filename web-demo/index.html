@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DAFX Web Demo - Interactive Audio Effects</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>🎛️ DAFX Web Demo</h1>
+      <button id="startBtn" class="btn btn-primary">▶ Start Audio</button>
+    </header>
+
+    <main class="main">
+      <section class="input-section">
+        <h2>Input Source</h2>
+        <div class="input-controls">
+          <button id="micBtn" class="btn btn-input active">🎤 Microphone</button>
+          <button id="fileBtn" class="btn btn-input">📁 File</button>
+          <button id="oscBtn" class="btn btn-input">🔊 Oscillator</button>
+          <input type="file" id="audioFile" accept="audio/*" hidden>
+        </div>
+        <div id="oscControls" class="osc-controls hidden">
+          <label>Frequency: <span id="freqValue">440</span> Hz</label>
+          <input type="range" id="oscFreq" min="100" max="2000" value="440">
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <aside class="effects-panel">
+          <h2>Effects</h2>
+          <ul id="effectsList" class="effects-list">
+            <li data-effect="tube" class="effect-item active">Tube Distortion</li>
+            <li data-effect="wahwah" class="effect-item">Wah-Wah</li>
+            <li data-effect="ringmod" class="effect-item">Ring Modulator</li>
+            <li data-effect="vibrato" class="effect-item">Vibrato</li>
+            <li data-effect="noisegate" class="effect-item">Noise Gate</li>
+            <li data-effect="robotization" class="effect-item">Robotization</li>
+            <li data-effect="whisperization" class="effect-item">Whisperization</li>
+            <li data-effect="phasevocoder" class="effect-item">Phase Vocoder</li>
+            <li data-effect="reverb" class="effect-item">FDN Reverb</li>
+            <li data-effect="stereopan" class="effect-item">Stereo Pan</li>
+          </ul>
+        </aside>
+
+        <section class="params-panel">
+          <h2>Parameters</h2>
+          <div id="paramsContainer" class="params-container">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+        <section class="visualizer-panel">
+          <h2>Visualizer</h2>
+          <div class="visualizer-container">
+            <canvas id="waveformCanvas" width="400" height="150"></canvas>
+            <canvas id="spectrumCanvas" width="400" height="150"></canvas>
+          </div>
+        </section>
+      </div>
+
+      <section class="output-section">
+        <div class="output-controls">
+          <label>
+            <span>Output Volume</span>
+            <input type="range" id="outputVolume" min="0" max="100" value="80">
+            <span id="volumeValue">80%</span>
+          </label>
+          <label class="bypass-label">
+            <input type="checkbox" id="bypassToggle">
+            <span>Bypass</span>
+          </label>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <p>DAFX-to-DaisySP v1.7 | <a href="https://github.com/user/DAFX_2_Daisy_lib" target="_blank">GitHub</a></p>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

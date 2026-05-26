@@ -2,7 +2,7 @@
 
 **Last Updated:** 2026-01-12
 **Project:** DAFX_2_Daisy_lib
-**Current Version:** v1.7-all-tests-passing
+**Current Version:** v1.8-web-demo-phase1
 
 ---
 
@@ -11,7 +11,6 @@
 All implementation plans have been completed and archived.
 
 ---
-
 ## Archived Plans
 
 | Plan | Completion Date | Notes |

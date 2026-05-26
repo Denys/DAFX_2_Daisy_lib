@@ -1,6 +1,6 @@
 # DAFX-to-DaisySP Checkpoint
 **Date**: 2026-01-12
-**Version**: v1.7-all-tests-passing
+**Version**: v1.8-web-demo-phase1
 
 ---
 
@@ -181,6 +181,7 @@ cd docs/
 | 2026-01-12 | v1.5-phase23-track-b-sync3 | **Track B Sync 3 Complete**: Created `src/spectral/spectral_filter.h` (FFT-based FIR convolution), `src/spectral/phase_vocoder.h` (phase accumulation pitch shifter), `src/spatial/crosstalk_canceller.h` (HRIR-based stereo separation), `src/utility/simple_hrir.h` (ITD/ILD generator). All 24 new tests pass. |
 | 2026-01-12 | v1.6-cicd-complete | **CI/CD Pipeline Complete**: Created `.github/workflows/build.yml` (multi-platform CI for Linux/Windows/macOS), `.github/workflows/release.yml` (automated releases). Added CI badge to README. Updated README roadmap to reflect Phase 2/3 completion. **All Planned Features Complete.** |
 | 2026-01-12 | v1.7-all-tests-passing | **S4/S5 Validation Complete**: Fixed 6 pre-existing test failures. TubeTest (adjusted for DC offset), RingMod (fixed to true ring modulation), StereoPan (replaced tangent law with cosine pan law). **151/151 tests pass (100%)**. |
+| 2026-01-12 | v1.8-web-demo-phase1 | **Web Demo Phase 1 Complete**: Created `web-demo/` with Vite, responsive dark-mode UI, 10 effects with dynamic parameters, waveform/spectrum visualizers, AudioWorklet processor. UI verified at localhost:5173. |
 
 ---
 
