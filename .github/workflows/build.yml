@@ -23,15 +23,13 @@ jobs:
         sudo apt-get install -y cmake g++ ninja-build
     
     - name: Configure CMake
-      run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      run: cmake -S . -B ci-build -G Ninja -DCMAKE_BUILD_TYPE=Release
     
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build ci-build --config Release
     
     - name: Run tests
-      run: |
-        cd build
-        ctest -C Release --output-on-failure --verbose
+      run: ctest --test-dir ci-build -C Release --output-on-failure --verbose
 
   build-windows:
     runs-on: windows-latest
@@ -40,15 +38,13 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -S . -B ci-build -DCMAKE_BUILD_TYPE=Release
     
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build ci-build --config Release
     
     - name: Run tests
-      run: |
-        cd build
-        ctest -C Release --output-on-failure --verbose
+      run: ctest --test-dir ci-build -C Release --output-on-failure --verbose
 
   build-macos:
     runs-on: macos-latest
@@ -60,15 +56,13 @@ jobs:
       run: brew install cmake ninja
     
     - name: Configure CMake
-      run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      run: cmake -S . -B ci-build -G Ninja -DCMAKE_BUILD_TYPE=Release
     
     - name: Build
-      run: cmake --build build --config Release
+      run: cmake --build ci-build --config Release
     
     - name: Run tests
-      run: |
-        cd build
-        ctest -C Release --output-on-failure --verbose
+      run: ctest --test-dir ci-build -C Release --output-on-failure --verbose
 
   code-quality:
     runs-on: ubuntu-latest
