@@ -47,6 +47,8 @@ set(TEST_SOURCES
     test_spectral_filter.cpp
     test_phase_vocoder.cpp
     test_crosstalk_canceller.cpp
+    # Portable pedal/synth harness contract
+    test_dsp_contract.cpp
     # Effects (Phase 2 - Track A Sync 3) - TODO: implement these
     # test_fdn_reverb.cpp
     # test_sola.cpp
