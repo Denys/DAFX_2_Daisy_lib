@@ -7,6 +7,8 @@ on:
       - "src/pedal_harness/**"
       - "tests/test_dsp_contract.cpp"
       - "tests/test_digital_delay_node.cpp"
+      - "tests/test_fractional_delay.cpp"
+      - "tests/fractional_delay_characterization.cpp"
       - "tests/CMakeLists.txt"
       - ".github/workflows/pedal-harness-contract.yml"
   workflow_dispatch:
@@ -30,11 +32,23 @@ jobs:
           -DBUILD_TESTING=ON
           -DBUILD_EXAMPLES=OFF
 
-      - name: Build portable harness target
-        run: cmake --build phh-build --target pedal_harness_tests --config Release
+      - name: Build portable harness targets
+        run: >-
+          cmake --build phh-build
+          --target pedal_harness_tests fractional_delay_characterization
+          --config Release
 
       - name: Run portable harness tests
         run: >-
           ctest --test-dir phh-build -C Release
-          -R "^PedalHarnessContractTests$"
+          -R "^(PedalHarnessContractTests|FractionalDelayCharacterization)$"
           --output-on-failure --verbose
+
+      - name: Capture fractional-read measurements
+        run: ./phh-build/tests/fractional_delay_characterization > fractional-delay-characterization.csv
+
+      - name: Upload characterization CSV
+        uses: actions/upload-artifact@v4
+        with:
+          name: fractional-delay-characterization-linux
+          path: fractional-delay-characterization.csv
