@@ -31,12 +31,15 @@ jobs:
         -DBUILD_EXAMPLES=OFF
 
     - name: Build maintained targets
-      run: cmake --build ci-build --target dafx_daisysp pedal_harness_tests --config Release
+      run: >-
+        cmake --build ci-build
+        --target dafx_daisysp pedal_harness_tests fractional_delay_characterization
+        --config Release
 
     - name: Run maintained tests
       run: >-
         ctest --test-dir ci-build -C Release
-        -R "^PedalHarnessContractTests$"
+        -R "^(PedalHarnessContractTests|FractionalDelayCharacterization)$"
         --output-on-failure --verbose
 
   build-windows:
@@ -52,12 +55,15 @@ jobs:
         -DBUILD_EXAMPLES=OFF
 
     - name: Build maintained targets
-      run: cmake --build ci-build --target dafx_daisysp pedal_harness_tests --config Release
+      run: >-
+        cmake --build ci-build
+        --target dafx_daisysp pedal_harness_tests fractional_delay_characterization
+        --config Release
 
     - name: Run maintained tests
       run: >-
         ctest --test-dir ci-build -C Release
-        -R "^PedalHarnessContractTests$"
+        -R "^(PedalHarnessContractTests|FractionalDelayCharacterization)$"
         --output-on-failure --verbose
 
   build-macos:
@@ -77,12 +83,15 @@ jobs:
         -DBUILD_EXAMPLES=OFF
 
     - name: Build maintained targets
-      run: cmake --build ci-build --target dafx_daisysp pedal_harness_tests --config Release
+      run: >-
+        cmake --build ci-build
+        --target dafx_daisysp pedal_harness_tests fractional_delay_characterization
+        --config Release
 
     - name: Run maintained tests
       run: >-
         ctest --test-dir ci-build -C Release
-        -R "^PedalHarnessContractTests$"
+        -R "^(PedalHarnessContractTests|FractionalDelayCharacterization)$"
         --output-on-failure --verbose
 
   legacy-regression:
