@@ -61,10 +61,11 @@ target_link_libraries(unit_tests
 )
 add_test(NAME UnitTests COMMAND unit_tests)
 
-# Scoped WP-01 acceptance target. This lets the portable contract be built and
-# tested independently from unrelated legacy test/example failures.
+# Scoped Pedal & Synth Harness acceptance target. It remains independent from
+# unrelated legacy test/example failures while new portable nodes are migrated.
 add_executable(pedal_harness_tests
     test_dsp_contract.cpp
+    test_digital_delay_node.cpp
 )
 target_link_libraries(pedal_harness_tests
     gtest
