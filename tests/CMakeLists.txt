@@ -7,7 +7,7 @@ include(FetchContent)
 FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_TAG        release-1.12.1
+    GIT_TAG        v1.17.0
 )
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
@@ -16,9 +16,9 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 # Make available
 FetchContent_MakeAvailable(googletest)
 
-# Test source files
-# NOTE: Several Phase 1 tests have API mismatches and need updating
-# For now, only include tests that compile cleanly
+# Legacy test source files.
+# NOTE: Several tests have API/build mismatches and remain visible here until
+# the wider repository test debt is handled separately.
 set(TEST_SOURCES
     # Effects (working tests only)
     test_tube.cpp
@@ -52,18 +52,27 @@ set(TEST_SOURCES
     # test_sola.cpp
 )
 
-# Create test executable
+# Existing aggregate suite. Kept intact so legacy failures remain visible.
 add_executable(unit_tests ${TEST_SOURCES})
-
-# Link against Google Test and the library
 target_link_libraries(unit_tests
     gtest
     gtest_main
     dafx_daisysp
 )
-
-# Add test to CTest
 add_test(NAME UnitTests COMMAND unit_tests)
+
+# Scoped Pedal & Synth Harness acceptance target. It remains independent from
+# unrelated legacy test/example failures while new portable nodes are migrated.
+add_executable(pedal_harness_tests
+    test_dsp_contract.cpp
+    test_digital_delay_node.cpp
+)
+target_link_libraries(pedal_harness_tests
+    gtest
+    gtest_main
+    dafx_daisysp
+)
+add_test(NAME PedalHarnessContractTests COMMAND pedal_harness_tests)
 
 # Enable testing
 enable_testing()

@@ -1,0 +1,40 @@
+name: Pedal Harness Contract
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "src/pedal_harness/**"
+      - "tests/test_dsp_contract.cpp"
+      - "tests/test_digital_delay_node.cpp"
+      - "tests/CMakeLists.txt"
+      - ".github/workflows/pedal-harness-contract.yml"
+  workflow_dispatch:
+
+jobs:
+  contract-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure clean contract build
+        run: >-
+          cmake -S . -B phh-build -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DBUILD_TESTING=ON
+          -DBUILD_EXAMPLES=OFF
+
+      - name: Build portable harness target
+        run: cmake --build phh-build --target pedal_harness_tests --config Release
+
+      - name: Run portable harness tests
+        run: >-
+          ctest --test-dir phh-build -C Release
+          -R "^PedalHarnessContractTests$"
+          --output-on-failure --verbose

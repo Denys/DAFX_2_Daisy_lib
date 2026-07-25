@@ -1,3 +1,9 @@
+# CMake build outputs
+build/
+ci-build/
+_build/
+CMakeUserPresets.json
+
 # Intermediates
 .tmp/
 
