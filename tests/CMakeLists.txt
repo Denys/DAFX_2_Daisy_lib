@@ -66,6 +66,7 @@ add_test(NAME UnitTests COMMAND unit_tests)
 add_executable(pedal_harness_tests
     test_dsp_contract.cpp
     test_digital_delay_node.cpp
+    test_fractional_delay.cpp
 )
 target_link_libraries(pedal_harness_tests
     gtest
@@ -73,6 +74,17 @@ target_link_libraries(pedal_harness_tests
     dafx_daisysp
 )
 add_test(NAME PedalHarnessContractTests COMMAND pedal_harness_tests)
+
+# Characterization is a deterministic host-side measurement executable. It
+# emits CSV to stdout and intentionally has no absolute CPU pass/fail threshold.
+add_executable(fractional_delay_characterization
+    fractional_delay_characterization.cpp
+)
+target_link_libraries(fractional_delay_characterization
+    dafx_daisysp
+)
+add_test(NAME FractionalDelayCharacterization
+         COMMAND fractional_delay_characterization)
 
 # Enable testing
 enable_testing()
