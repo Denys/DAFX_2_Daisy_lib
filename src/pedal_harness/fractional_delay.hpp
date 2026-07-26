@@ -55,15 +55,18 @@ class CircularFractionalReader final {
             return 0.0F;
         }
 
-        const float x0 = Sample(base);
-        const float x1 = Sample(base + 1);
+        const float x0 = Sample(base, 0);
+        const float x1 = Sample(base, 1);
 
         if(policy == InterpolationPolicy::Linear) {
             return InterpolateLinear(x0, x1, fraction);
         }
 
-        return InterpolateCubicLagrange(
-            Sample(base - 1), x0, x1, Sample(base + 2), fraction);
+        return InterpolateCubicLagrange(Sample(base, -1),
+                                        x0,
+                                        x1,
+                                        Sample(base, 2),
+                                        fraction);
     }
 
   private:
@@ -112,9 +115,15 @@ class CircularFractionalReader final {
         return fraction >= 0.0F && fraction < 1.0F;
     }
 
-    [[nodiscard]] float Sample(std::ptrdiff_t index) const noexcept {
+    [[nodiscard]] float Sample(std::ptrdiff_t base,
+                               std::ptrdiff_t offset) const noexcept {
         const auto capacity = static_cast<std::ptrdiff_t>(capacity_);
-        std::ptrdiff_t wrapped = index % capacity;
+        std::ptrdiff_t wrapped = base % capacity;
+        if(wrapped < 0) {
+            wrapped += capacity;
+        }
+        wrapped += offset;
+        wrapped %= capacity;
         if(wrapped < 0) {
             wrapped += capacity;
         }
