@@ -75,8 +75,8 @@ target_link_libraries(pedal_harness_tests
 )
 add_test(NAME PedalHarnessContractTests COMMAND pedal_harness_tests)
 
-# Characterization is a deterministic host-side measurement executable. It
-# emits CSV to stdout and intentionally has no absolute CPU pass/fail threshold.
+# Host-side characterization emits a stable CSV schema. Static measurements are
+# deterministic; the CPU rows are observational and validated separately.
 add_executable(fractional_delay_characterization
     fractional_delay_characterization.cpp
 )
