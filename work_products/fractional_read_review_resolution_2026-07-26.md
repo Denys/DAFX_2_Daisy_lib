@@ -4,7 +4,7 @@
 
 PR #2 remains **draft** after revision. The interpolation kernel was retained; the measurement harness and target-facing reader API were reworked.
 
-Head reviewed by CI: `8b2a7757becaa0adb24c72b8fde714fa75dd1792`.
+Technical head reviewed by CI: `5c8c87669a82021e0c50038e58f59d26a0b6c73f`.
 
 ## Finding resolution
 
@@ -15,7 +15,7 @@ Head reviewed by CI: `8b2a7757becaa0adb24c72b8fde714fa75dd1792`.
 | Modulation metric measured intended PM | Added ideal-reference output, upper/lower sidebands for orders 1–4, deviation from ideal, asymmetry, residual RMS and a local residual-spur scan. Carrier/modulation are integer DFT bins by construction. |
 | “Recirculation” was analytical | Renamed to `predicted_static_cascade_loss_db`; added `predicted_feedback_cascade_loss_db` with an explicit feedback-gain field and pass count. |
 | Analytical helper could self-certify | Added an independent complex-gain measurement through `CircularFractionalReader`; magnitude and phase errors are emitted and directly tested. |
-| Tests established only relative superiority | Added direct cubic basis values at mu=0.5, endpoint tests, analytical magnitude/phase checks, explicit boundary expectations, multiple-period wrapping, fraction carry/borrow, NaN/+Inf/-Inf and absolute operating-band limits. Near-Nyquist degradation is explicitly asserted. |
+| Tests established only relative superiority | Added direct cubic basis values at mu=0.5, endpoint tests, analytical magnitude/phase checks, explicit boundary expectations, multiple-period wrapping, fraction carry/borrow, NaN/+Inf/-Inf, absolute operating-band limits and extreme integer-base coverage. Near-Nyquist degradation is explicitly asserted. |
 | CPU benchmark weak and mislabeled | Renamed to host full-reader timing, added warm-up, 11 alternating trials, median, IQR, ratio and a metadata sidecar with compiler, flags, architecture, OS, runner image, build type and commit. |
 | “Deterministic” comment included timing | CMake now distinguishes deterministic static metrics from observational CPU rows. |
 
@@ -41,12 +41,7 @@ These are host observations from the uploaded GitHub Actions artifact, not embed
 - modulation residual RMS:
   - linear: about `0.0355 FS rms`;
   - cubic: about `0.00388 FS rms`;
-- full-reader host median:
-  - linear: about `3.74 ns/call`;
-  - cubic: about `3.75 ns/call`;
-  - ratio: about `1.00x` on this x86_64 runner.
-
-The near-unity host ratio is not generalized to Cortex-M7. It mainly shows that integer wrapping and memory/index work dominate this particular optimized desktop loop.
+- full-reader host timing remains observational only; Cortex-M7 cost is still unmeasured.
 
 ## Remaining limitations
 
@@ -59,6 +54,6 @@ The near-unity host ratio is not generalized to Cortex-M7. It mainly shows that 
 
 ## Gate
 
-All maintained Linux, macOS and Windows builds/tests pass. The dedicated contract workflow passes, including artifact validation and upload. The known full legacy aggregate remains non-blocking and visible.
+All maintained Linux, macOS and Windows builds/tests pass at the stated technical head. The dedicated contract workflow passes, including artifact validation and upload. The known full legacy aggregate remains non-blocking and visible.
 
 **Recommendation:** keep PR #2 draft for one independent re-review; do not merge solely because CI is green.
