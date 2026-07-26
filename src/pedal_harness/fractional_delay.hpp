@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 namespace phh {
 
@@ -44,15 +45,15 @@ class CircularFractionalReader final {
         return buffer_ != nullptr && capacity_ >= 4U;
     }
 
-    [[nodiscard]] float Read(float position,
+    // Target-facing API: keep the integer sample position separate from the
+    // fractional phase. This prevents an accumulating binary32 position from
+    // silently losing its fractional part after a few minutes of audio.
+    [[nodiscard]] float Read(std::ptrdiff_t base,
+                             float fraction,
                              InterpolationPolicy policy) const noexcept {
-        if(!IsValid() || !std::isfinite(position)) {
+        if(!IsValid() || !Normalize(base, fraction)) {
             return 0.0F;
         }
-
-        const float wrapped = WrapPosition(position);
-        const auto base = static_cast<std::ptrdiff_t>(std::floor(wrapped));
-        const float fraction = wrapped - static_cast<float>(base);
 
         const float x0 = Sample(base);
         const float x1 = Sample(base + 1);
@@ -66,13 +67,49 @@ class CircularFractionalReader final {
     }
 
   private:
-    [[nodiscard]] float WrapPosition(float position) const noexcept {
-        const float capacity = static_cast<float>(capacity_);
-        float wrapped = std::fmod(position, capacity);
-        if(wrapped < 0.0F) {
-            wrapped += capacity;
+    [[nodiscard]] static bool AddChecked(std::ptrdiff_t& base,
+                                         std::ptrdiff_t delta) noexcept {
+        constexpr auto kMin = std::numeric_limits<std::ptrdiff_t>::min();
+        constexpr auto kMax = std::numeric_limits<std::ptrdiff_t>::max();
+
+        if((delta > 0 && base > kMax - delta)
+           || (delta < 0 && base < kMin - delta)) {
+            return false;
         }
-        return wrapped;
+        base += delta;
+        return true;
+    }
+
+    [[nodiscard]] static bool Normalize(std::ptrdiff_t& base,
+                                        float& fraction) noexcept {
+        if(!std::isfinite(fraction)) {
+            return false;
+        }
+
+        if(fraction >= 1.0F || fraction < 0.0F) {
+            const float whole = std::floor(fraction);
+            if(whole < static_cast<float>(
+                           std::numeric_limits<std::ptrdiff_t>::min())
+               || whole > static_cast<float>(
+                              std::numeric_limits<std::ptrdiff_t>::max())) {
+                return false;
+            }
+
+            const auto carry = static_cast<std::ptrdiff_t>(whole);
+            if(!AddChecked(base, carry)) {
+                return false;
+            }
+            fraction -= whole;
+        }
+
+        // Defend against the rare case where rounding produces exactly 1.0.
+        if(fraction >= 1.0F) {
+            if(!AddChecked(base, 1)) {
+                return false;
+            }
+            fraction = 0.0F;
+        }
+        return fraction >= 0.0F && fraction < 1.0F;
     }
 
     [[nodiscard]] float Sample(std::ptrdiff_t index) const noexcept {
