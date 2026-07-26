@@ -7,7 +7,7 @@ on:
       - "src/pedal_harness/**"
       - "tests/test_dsp_contract.cpp"
       - "tests/test_digital_delay_node.cpp"
-      - "tests/test_fractional_delay.cpp"
+      - "tests/test_fractional_delay*.cpp"
       - "tests/fractional_delay_characterization.cpp"
       - "tests/validate_fractional_delay_csv.py"
       - "tests/CMakeLists.txt"
