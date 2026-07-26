@@ -9,6 +9,7 @@ on:
       - "tests/test_digital_delay_node.cpp"
       - "tests/test_fractional_delay.cpp"
       - "tests/fractional_delay_characterization.cpp"
+      - "tests/validate_fractional_delay_csv.py"
       - "tests/CMakeLists.txt"
       - ".github/workflows/pedal-harness-contract.yml"
   workflow_dispatch:
@@ -45,10 +46,31 @@ jobs:
           --output-on-failure --verbose
 
       - name: Capture fractional-read measurements
-        run: ./phh-build/tests/fractional_delay_characterization > fractional-delay-characterization.csv
+        run: >-
+          ./phh-build/tests/fractional_delay_characterization
+          > fractional-delay-characterization.csv
 
-      - name: Upload characterization CSV
+      - name: Validate characterization artifact
+        run: >-
+          python3 tests/validate_fractional_delay_csv.py
+          fractional-delay-characterization.csv
+
+      - name: Capture benchmark environment
+        run: |
+          {
+            echo "compiler=$(c++ --version | head -n 1)"
+            echo "compiler_flags=-O3 -DNDEBUG (CMake Release defaults)"
+            echo "architecture=$(uname -m)"
+            echo "os=$(uname -srmo)"
+            echo "runner_image=${ImageOS:-unknown}"
+            echo "build_type=Release"
+            echo "commit=${GITHUB_SHA}"
+          } > fractional-delay-characterization-metadata.txt
+
+      - name: Upload characterization artifacts
         uses: actions/upload-artifact@v4
         with:
           name: fractional-delay-characterization-linux
-          path: fractional-delay-characterization.csv
+          path: |
+            fractional-delay-characterization.csv
+            fractional-delay-characterization-metadata.txt
