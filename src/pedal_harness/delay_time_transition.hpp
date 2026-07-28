@@ -38,6 +38,11 @@ struct DelayReadPlan {
 class DelayTimeTransition final {
   public:
     [[nodiscard]] bool Prepare(const DelayTransitionConfig& config) noexcept {
+        prepared_ = false;
+        state_ = State::Idle;
+        queued_request_valid_ = false;
+        completion_pending_ = false;
+
         if(!std::isfinite(config.minimum_delay_samples)
            || !std::isfinite(config.maximum_delay_samples)
            || config.minimum_delay_samples <= 0.0F
