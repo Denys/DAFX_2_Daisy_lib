@@ -67,6 +67,7 @@ add_executable(pedal_harness_tests
     test_dsp_contract.cpp
     test_digital_delay_node.cpp
     test_delay_time_transition.cpp
+    test_delay_time_transition_reprepare.cpp
 )
 target_link_libraries(pedal_harness_tests
     gtest
