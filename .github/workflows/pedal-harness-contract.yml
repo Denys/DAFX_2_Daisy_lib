@@ -60,6 +60,7 @@ jobs:
           repository: electro-smith/libDaisy
           ref: 3bd68f206ef91c8052503f1e363b7e08438c44f5
           path: external/libDaisy
+          submodules: recursive
 
       - name: Install ARM GNU toolchain
         run: |
