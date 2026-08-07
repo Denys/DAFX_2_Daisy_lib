@@ -2,12 +2,16 @@ name: Pedal Harness Contract
 
 on:
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+      - automation/delay-fractional-read-2026-08-01
     paths:
       - "src/pedal_harness/**"
       - "tests/test_dsp_contract.cpp"
       - "tests/test_digital_delay_node.cpp"
+      - "tests/test_fractional_delay_node.cpp"
       - "tests/CMakeLists.txt"
+      - "examples/daisy_target_delay/**"
       - ".github/workflows/pedal-harness-contract.yml"
   workflow_dispatch:
 
@@ -38,3 +42,73 @@ jobs:
           ctest --test-dir phh-build -C Release
           -R "^PedalHarnessContractTests$"
           --output-on-failure --verbose
+
+  daisy-target-build:
+    name: Daisy target build (${{ matrix.board }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: [POD, FIELD]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkout pinned libDaisy
+        uses: actions/checkout@v4
+        with:
+          repository: electro-smith/libDaisy
+          ref: 3bd68f206ef91c8052503f1e363b7e08438c44f5
+          path: external/libDaisy
+
+      - name: Install ARM GNU toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-none-eabi make
+          arm-none-eabi-g++ --version
+
+      - name: Build pinned libDaisy
+        run: make -C external/libDaisy -j2
+
+      - name: Build profiled target harness
+        run: |
+          make -C examples/daisy_target_delay clean
+          make -C examples/daisy_target_delay -j2 \
+            BOARD=${{ matrix.board }} \
+            AUDIO_BLOCK_SIZE=48 \
+            ENABLE_PROFILING=1 \
+            LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
+          mkdir -p "target-artifacts/${{ matrix.board }}/profile"
+          cp examples/daisy_target_delay/build/daisy_target_delay.elf \
+             examples/daisy_target_delay/build/daisy_target_delay.bin \
+             examples/daisy_target_delay/build/daisy_target_delay.map \
+             "target-artifacts/${{ matrix.board }}/profile/"
+          arm-none-eabi-size examples/daisy_target_delay/build/daisy_target_delay.elf \
+            | tee "target-artifacts/${{ matrix.board }}/profile/size.txt"
+          arm-none-eabi-size -A examples/daisy_target_delay/build/daisy_target_delay.elf \
+            | tee "target-artifacts/${{ matrix.board }}/profile/sections.txt"
+
+      - name: Build profiling-disabled target harness
+        run: |
+          make -C examples/daisy_target_delay clean
+          make -C examples/daisy_target_delay -j2 \
+            BOARD=${{ matrix.board }} \
+            AUDIO_BLOCK_SIZE=48 \
+            ENABLE_PROFILING=0 \
+            LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
+          mkdir -p "target-artifacts/${{ matrix.board }}/release"
+          cp examples/daisy_target_delay/build/daisy_target_delay.elf \
+             examples/daisy_target_delay/build/daisy_target_delay.bin \
+             examples/daisy_target_delay/build/daisy_target_delay.map \
+             "target-artifacts/${{ matrix.board }}/release/"
+          arm-none-eabi-size examples/daisy_target_delay/build/daisy_target_delay.elf \
+            | tee "target-artifacts/${{ matrix.board }}/release/size.txt"
+          arm-none-eabi-size -A examples/daisy_target_delay/build/daisy_target_delay.elf \
+            | tee "target-artifacts/${{ matrix.board }}/release/sections.txt"
+
+      - name: Upload target build evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: daisy-target-${{ matrix.board }}-block48
+          path: target-artifacts/${{ matrix.board }}
+          if-no-files-found: error
