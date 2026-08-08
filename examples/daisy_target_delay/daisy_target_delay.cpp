@@ -87,7 +87,7 @@ class ProfileCapture final {
     }
 
     void Record(std::uint32_t cycles) noexcept {
-        if(ready_.load(std::memory_order_relaxed)) {
+        if(ready_.load(std::memory_order_acquire)) {
             return;
         }
 
@@ -328,8 +328,7 @@ void ServiceDiagnosticsDomain() noexcept {
 
     daisy::DaisySeed::PrintLine(
         "PHH_PROFILE board=%s samples=%lu avg=%lu p999=%lu max=%lu "
-        "budget=%lu overruns=%lu snapshot_misses=%lu generation=%lu "
-        "interp=%s bypass=%s",
+        "budget=%lu overruns=%lu snapshot_misses=%lu interp=%s bypass=%s",
         kBoardName,
         static_cast<unsigned long>(summary.sample_count),
         static_cast<unsigned long>(summary.average_cycles),
@@ -339,7 +338,6 @@ void ServiceDiagnosticsDomain() noexcept {
         static_cast<unsigned long>(summary.overrun_count),
         static_cast<unsigned long>(
             g_control_snapshot_misses.load(std::memory_order_relaxed)),
-        static_cast<unsigned long>(g_audio_control.generation),
         g_gesture_state.cubic_interpolation ? "cubic" : "linear",
         g_gesture_state.bypass_with_trails ? "trails" : "effect");
 }
