@@ -1,4 +1,5 @@
 #include "pedal_harness/digital_delay_node.hpp"
+#include "pedal_harness/runtime_control.hpp"
 #include "pedal_harness/static_serial_graph.hpp"
 
 #if defined(PHH_DAISY_BOARD_POD)
@@ -14,7 +15,6 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <cstring>
 
 #ifndef PHH_AUDIO_BLOCK_SIZE
 #define PHH_AUDIO_BLOCK_SIZE 48
@@ -36,8 +36,6 @@ constexpr std::size_t kProfileSamples = 4096U;
 constexpr float kMaxHarnessFeedback = 0.95F;
 
 static_assert(kAudioBlockFrames > 0U, "Audio block size must be non-zero");
-static_assert(std::atomic<std::uint32_t>::is_always_lock_free,
-              "32-bit atomics must be lock-free in the audio path");
 
 #if defined(PHH_DAISY_BOARD_POD)
 using TargetBoard = daisy::DaisyPod;
@@ -49,8 +47,9 @@ TargetBoard g_hardware;
 constexpr const char* kBoardName = "DaisyField";
 #endif
 
-using ParameterArray =
-    std::array<float, DigitalDelayNode::ParameterCount>;
+using ParameterArray = std::array<float, DigitalDelayNode::ParameterCount>;
+using ControlFrame =
+    phh::RealtimeControlFrame<DigitalDelayNode::ParameterCount>;
 
 // The portable delay owns its history through StaticArena. Keep the backing
 // store in external SDRAM so long-delay traffic is explicit and inspectable.
@@ -63,70 +62,11 @@ phh::DiagnosticsCounters g_diagnostics{};
 
 float g_sample_rate_hz = kTargetSampleRateHz;
 std::size_t g_arena_used_bytes = 0U;
-bool g_use_cubic = false;
 
-class ParameterMailbox final {
-  public:
-    void Publish(const ParameterArray& values) noexcept {
-        sequence_.fetch_add(1U, std::memory_order_acq_rel); // odd: writer active
-        for(std::size_t i = 0; i < values.size(); ++i) {
-            bits_[i].store(FloatToBits(values[i]), std::memory_order_relaxed);
-        }
-        sequence_.fetch_add(1U, std::memory_order_release); // even: publish
-    }
-
-    [[nodiscard]] bool ReadBounded(ParameterArray& values,
-                                   std::uint32_t& generation) const noexcept {
-        // Bounded seqlock read. A control update may pre-empt this callback;
-        // if coherence is not achieved in two attempts, retain the previous
-        // complete audio snapshot for this block rather than spin.
-        for(std::size_t attempt = 0; attempt < 2U; ++attempt) {
-            const std::uint32_t before =
-                sequence_.load(std::memory_order_acquire);
-            if((before & 1U) != 0U) {
-                continue;
-            }
-
-            ParameterArray candidate{};
-            for(std::size_t i = 0; i < candidate.size(); ++i) {
-                candidate[i] = BitsToFloat(
-                    bits_[i].load(std::memory_order_relaxed));
-            }
-
-            const std::uint32_t after =
-                sequence_.load(std::memory_order_acquire);
-            if(before == after && (after & 1U) == 0U) {
-                values = candidate;
-                generation = after / 2U;
-                return true;
-            }
-        }
-        return false;
-    }
-
-  private:
-    static std::uint32_t FloatToBits(float value) noexcept {
-        std::uint32_t bits = 0U;
-        std::memcpy(&bits, &value, sizeof(bits));
-        return bits;
-    }
-
-    static float BitsToFloat(std::uint32_t bits) noexcept {
-        float value = 0.0F;
-        std::memcpy(&value, &bits, sizeof(value));
-        return value;
-    }
-
-    std::atomic<std::uint32_t> sequence_{0U};
-    std::array<std::atomic<std::uint32_t>,
-               DigitalDelayNode::ParameterCount>
-        bits_{};
-};
-
-ParameterMailbox g_parameter_mailbox;
-ParameterArray g_audio_parameters{};
-std::uint32_t g_audio_parameter_generation = 0U;
-std::atomic<std::uint32_t> g_parameter_snapshot_misses{0U};
+phh::RealtimeControlMailbox<DigitalDelayNode::ParameterCount> g_control_mailbox;
+ControlFrame g_audio_control{};
+phh::ToggleGestureState g_gesture_state{};
+std::atomic<std::uint32_t> g_control_snapshot_misses{0U};
 
 #if PHH_ENABLE_PROFILING
 struct ProfileSummary {
@@ -166,8 +106,8 @@ class ProfileCapture final {
             return false;
         }
 
-        // Audio callback stops writing while ready_ is true. Sorting and
-        // reporting therefore happen outside the callback without races.
+        // The callback stops writing while ready_ is true. Sorting and
+        // reporting therefore remain outside interrupt/audio context.
         std::sort(samples_.begin(), samples_.begin() + count_);
 
         std::uint64_t sum = 0U;
@@ -213,15 +153,13 @@ void InitCycleCounter() noexcept {
 }
 #endif
 
-float Clamp01(float value) noexcept {
-    if(value < 0.0F) {
-        return 0.0F;
-    }
-    if(value > 1.0F) {
-        return 1.0F;
-    }
-    return value;
-}
+struct HarnessControlInputs {
+    float time_normalized = 0.5F;
+    float feedback_normalized = 0.35F / kMaxHarnessFeedback;
+    float mix_normalized = 0.5F;
+    bool interpolation_toggle_edge = false;
+    bool bypass_toggle_edge = false;
+};
 
 ParameterArray DefaultParameters() noexcept {
     ParameterArray parameters{};
@@ -237,41 +175,62 @@ ParameterArray DefaultParameters() noexcept {
     return parameters;
 }
 
-void PublishHarnessControls() noexcept {
+HarnessControlInputs ReadBoardControls() noexcept {
     g_hardware.ProcessAllControls();
 
-    float time_normalized = 0.5F;
-    float feedback_normalized = 0.35F / kMaxHarnessFeedback;
-    float mix_normalized = 0.5F;
-    bool toggle_interpolation = false;
+    HarnessControlInputs inputs{};
 
 #if defined(PHH_DAISY_BOARD_POD)
-    time_normalized = Clamp01(g_hardware.GetKnobValue(TargetBoard::KNOB_1));
-    feedback_normalized =
-        Clamp01(g_hardware.GetKnobValue(TargetBoard::KNOB_2));
-    toggle_interpolation = g_hardware.button1.RisingEdge();
+    inputs.time_normalized = phh::ClampNormalized(
+        g_hardware.GetKnobValue(TargetBoard::KNOB_1), 0.5F);
+    inputs.feedback_normalized = phh::ClampNormalized(
+        g_hardware.GetKnobValue(TargetBoard::KNOB_2),
+        0.35F / kMaxHarnessFeedback);
+    inputs.interpolation_toggle_edge = g_hardware.button1.RisingEdge();
+    inputs.bypass_toggle_edge = g_hardware.button2.RisingEdge();
 #elif defined(PHH_DAISY_BOARD_FIELD)
-    time_normalized = Clamp01(g_hardware.GetKnobValue(TargetBoard::KNOB_1));
-    feedback_normalized =
-        Clamp01(g_hardware.GetKnobValue(TargetBoard::KNOB_2));
-    mix_normalized = Clamp01(g_hardware.GetKnobValue(TargetBoard::KNOB_3));
-    toggle_interpolation = g_hardware.sw[TargetBoard::SW_1].RisingEdge();
+    inputs.time_normalized = phh::ClampNormalized(
+        g_hardware.GetKnobValue(TargetBoard::KNOB_1), 0.5F);
+    inputs.feedback_normalized = phh::ClampNormalized(
+        g_hardware.GetKnobValue(TargetBoard::KNOB_2),
+        0.35F / kMaxHarnessFeedback);
+    inputs.mix_normalized = phh::ClampNormalized(
+        g_hardware.GetKnobValue(TargetBoard::KNOB_3), 0.5F);
+    inputs.interpolation_toggle_edge =
+        g_hardware.sw[TargetBoard::SW_1].RisingEdge();
+    inputs.bypass_toggle_edge =
+        g_hardware.sw[TargetBoard::SW_2].RisingEdge();
 #endif
 
-    if(toggle_interpolation) {
-        g_use_cubic = !g_use_cubic;
-    }
+    return inputs;
+}
 
+ParameterArray MapControls(const HarnessControlInputs& inputs) noexcept {
     ParameterArray parameters = DefaultParameters();
     parameters[DigitalDelayNode::DelaySamples] =
-        1.0F + time_normalized * static_cast<float>(kMaxDelaySamples - 1U);
+        1.0F + inputs.time_normalized
+                   * static_cast<float>(kMaxDelaySamples - 1U);
     parameters[DigitalDelayNode::Feedback] =
-        feedback_normalized * kMaxHarnessFeedback;
-    parameters[DigitalDelayNode::DryMix] = 1.0F - mix_normalized;
-    parameters[DigitalDelayNode::WetMix] = mix_normalized;
+        inputs.feedback_normalized * kMaxHarnessFeedback;
+    parameters[DigitalDelayNode::DryMix] = 1.0F - inputs.mix_normalized;
+    parameters[DigitalDelayNode::WetMix] = inputs.mix_normalized;
     parameters[DigitalDelayNode::InterpolationMode] =
-        g_use_cubic ? 1.0F : 0.0F;
-    g_parameter_mailbox.Publish(parameters);
+        g_gesture_state.cubic_interpolation ? 1.0F : 0.0F;
+    return parameters;
+}
+
+void ServiceControlDomain() noexcept {
+    const HarnessControlInputs inputs = ReadBoardControls();
+    g_gesture_state.Update(inputs.interpolation_toggle_edge,
+                           inputs.bypass_toggle_edge);
+    const ParameterArray parameters = MapControls(inputs);
+    g_control_mailbox.Publish(parameters, g_gesture_state.bypass_with_trails);
+}
+
+void ServiceUiDomain() noexcept {
+    // Status-only UI for this bounded harness. Full display/menu work remains
+    // deliberately absent; this service runs only in main/control context.
+    g_hardware.seed.SetLed(!g_gesture_state.bypass_with_trails);
 }
 
 void BypassCopy(daisy::AudioHandle::InputBuffer in,
@@ -282,6 +241,18 @@ void BypassCopy(daisy::AudioHandle::InputBuffer in,
             out[channel][frame] = in[channel][frame];
         }
     }
+}
+
+ParameterArray EffectiveAudioParameters(const ControlFrame& control) noexcept {
+    ParameterArray parameters = control.parameters;
+    if(control.bypass_with_trails) {
+        // Explicit harness policy: dry signal remains present, new input is no
+        // longer injected into the delay, and the existing feedback tail keeps
+        // processing/decaying. No claim of click-free transition is made.
+        parameters[DigitalDelayNode::InputSend] = 0.0F;
+        parameters[DigitalDelayNode::DryMix] = 1.0F;
+    }
+    return parameters;
 }
 
 void AudioCallback(daisy::AudioHandle::InputBuffer in,
@@ -299,18 +270,18 @@ void AudioCallback(daisy::AudioHandle::InputBuffer in,
         return;
     }
 
-    ParameterArray candidate = g_audio_parameters;
-    std::uint32_t candidate_generation = g_audio_parameter_generation;
-    if(g_parameter_mailbox.ReadBounded(candidate, candidate_generation)) {
-        g_audio_parameters = candidate;
-        g_audio_parameter_generation = candidate_generation;
+    ControlFrame candidate = g_audio_control;
+    if(g_control_mailbox.ReadBounded(candidate)) {
+        g_audio_control = candidate;
     } else {
-        g_parameter_snapshot_misses.fetch_add(1U, std::memory_order_relaxed);
+        g_control_snapshot_misses.fetch_add(1U, std::memory_order_relaxed);
     }
 
-    const phh::ParameterSnapshot snapshot{g_audio_parameters.data(),
-                                          g_audio_parameters.size(),
-                                          g_audio_parameter_generation};
+    const ParameterArray effective_parameters =
+        EffectiveAudioParameters(g_audio_control);
+    const phh::ParameterSnapshot snapshot{effective_parameters.data(),
+                                          effective_parameters.size(),
+                                          g_audio_control.generation};
     phh::AudioBlock block{{in[0], in[1]}, {out[0], out[1]}, frames};
     g_graph.Process(block, &snapshot, g_diagnostics);
 
@@ -335,7 +306,8 @@ void PrintBootRecord() noexcept {
 
     daisy::DaisySeed::PrintLine(
         "PHH_TARGET board=%s fs=%lu block=%lu sysclk=%lu arena_used=%lu "
-        "arena_capacity=%lu arena_region=%d max_delay=%lu profile=%d",
+        "arena_capacity=%lu arena_region=%d max_delay=%lu profile=%d "
+        "bypass_policy=preserve_trails reset_policy=audio_stopped_only",
         kBoardName,
         static_cast<unsigned long>(g_sample_rate_hz),
         static_cast<unsigned long>(kAudioBlockFrames),
@@ -346,6 +318,32 @@ void PrintBootRecord() noexcept {
         static_cast<unsigned long>(kMaxDelaySamples),
         static_cast<int>(PHH_ENABLE_PROFILING));
 }
+
+#if PHH_ENABLE_PROFILING
+void ServiceDiagnosticsDomain() noexcept {
+    ProfileSummary summary{};
+    if(!g_profile_capture.Summarize(summary)) {
+        return;
+    }
+
+    daisy::DaisySeed::PrintLine(
+        "PHH_PROFILE board=%s samples=%lu avg=%lu p999=%lu max=%lu "
+        "budget=%lu overruns=%lu snapshot_misses=%lu generation=%lu "
+        "interp=%s bypass=%s",
+        kBoardName,
+        static_cast<unsigned long>(summary.sample_count),
+        static_cast<unsigned long>(summary.average_cycles),
+        static_cast<unsigned long>(summary.p999_cycles),
+        static_cast<unsigned long>(summary.max_cycles),
+        static_cast<unsigned long>(g_callback_budget_cycles),
+        static_cast<unsigned long>(summary.overrun_count),
+        static_cast<unsigned long>(
+            g_control_snapshot_misses.load(std::memory_order_relaxed)),
+        static_cast<unsigned long>(g_audio_control.generation),
+        g_gesture_state.cubic_interpolation ? "cubic" : "linear",
+        g_gesture_state.bypass_with_trails ? "trails" : "effect");
+}
+#endif
 
 } // namespace
 
@@ -368,8 +366,12 @@ int main(void) {
     }
     g_arena_used_bytes = arena.Used();
 
-    g_audio_parameters = DefaultParameters();
-    g_parameter_mailbox.Publish(g_audio_parameters);
+    // Reset/large state mutation is explicitly outside the callback. Any
+    // future preset/mode reset must stop audio before calling graph.Reset().
+    g_graph.Reset(phh::ResetReason::PowerOn);
+
+    g_audio_control.parameters = DefaultParameters();
+    g_control_mailbox.Publish(g_audio_control.parameters, false);
 
 #if PHH_ENABLE_PROFILING
     InitCycleCounter();
@@ -386,29 +388,14 @@ int main(void) {
     g_hardware.StartAudio(AudioCallback);
 
     while(true) {
-        // 48 samples at 48 kHz produce a 1 kHz callback/control cadence. Keep
-        // board scanning and USB logging outside the audio callback.
-        PublishHarnessControls();
-
+        // Explicit non-audio domains for this increment. Tempo/MIDI and
+        // storage are not relevant to the DIGI profiling graph and remain
+        // inactive rather than being smuggled into the callback.
+        ServiceControlDomain();
+        ServiceUiDomain();
 #if PHH_ENABLE_PROFILING
-        ProfileSummary summary{};
-        if(g_profile_capture.Summarize(summary)) {
-            daisy::DaisySeed::PrintLine(
-                "PHH_PROFILE board=%s samples=%lu avg=%lu p999=%lu max=%lu "
-                "budget=%lu overruns=%lu snapshot_misses=%lu interp=%s",
-                kBoardName,
-                static_cast<unsigned long>(summary.sample_count),
-                static_cast<unsigned long>(summary.average_cycles),
-                static_cast<unsigned long>(summary.p999_cycles),
-                static_cast<unsigned long>(summary.max_cycles),
-                static_cast<unsigned long>(g_callback_budget_cycles),
-                static_cast<unsigned long>(summary.overrun_count),
-                static_cast<unsigned long>(
-                    g_parameter_snapshot_misses.load(std::memory_order_relaxed)),
-                g_use_cubic ? "cubic" : "linear");
-        }
+        ServiceDiagnosticsDomain();
 #endif
-
         daisy::System::Delay(1U);
     }
 }
