@@ -5,11 +5,13 @@ on:
     branches:
       - main
       - automation/delay-fractional-read-2026-08-01
+      - automation/daisy-target-harness-2026-08-07
     paths:
       - "src/pedal_harness/**"
       - "tests/test_dsp_contract.cpp"
       - "tests/test_digital_delay_node.cpp"
       - "tests/test_fractional_delay_node.cpp"
+      - "tests/test_runtime_control.cpp"
       - "tests/CMakeLists.txt"
       - "examples/daisy_target_delay/**"
       - ".github/workflows/pedal-harness-contract.yml"
