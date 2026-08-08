@@ -67,6 +67,7 @@ add_executable(pedal_harness_tests
     test_dsp_contract.cpp
     test_digital_delay_node.cpp
     test_fractional_delay_node.cpp
+    test_runtime_control.cpp
 )
 target_link_libraries(pedal_harness_tests
     gtest
