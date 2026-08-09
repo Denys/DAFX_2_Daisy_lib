@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - automation/delay-fractional-read-2026-08-01
+      - automation/daisy-target-harness-2026-08-07
     paths:
       - "src/pedal_harness/**"
       - "tests/test_dsp_contract.cpp"
