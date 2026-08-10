@@ -5,6 +5,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 
 namespace {
 
@@ -32,6 +33,21 @@ phh::AudioBlock MakeBlock(std::array<float, Frames>& input_left,
     return phh::AudioBlock{{input_left.data(), input_right.data()},
                            {output_left.data(), output_right.data()},
                            Frames};
+}
+
+TEST(DelayFirmwareRuntime, ClampsNormalizedControlsAndUsesFiniteFallback) {
+    EXPECT_FLOAT_EQ(phh::ClampNormalized(-0.25F), 0.0F);
+    EXPECT_FLOAT_EQ(phh::ClampNormalized(0.5F), 0.5F);
+    EXPECT_FLOAT_EQ(phh::ClampNormalized(1.25F), 1.0F);
+    EXPECT_FLOAT_EQ(
+        phh::ClampNormalized(std::numeric_limits<float>::quiet_NaN(), 0.4F),
+        0.4F);
+    EXPECT_FLOAT_EQ(
+        phh::ClampNormalized(std::numeric_limits<float>::infinity(), 0.6F),
+        0.6F);
+    EXPECT_FLOAT_EQ(
+        phh::ClampNormalized(-std::numeric_limits<float>::infinity(), 0.7F),
+        0.7F);
 }
 
 TEST(DelayFirmwareRuntime, PublishesParametersAtBlockBoundary) {
