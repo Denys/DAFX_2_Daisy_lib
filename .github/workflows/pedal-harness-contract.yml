@@ -46,12 +46,13 @@ jobs:
           --output-on-failure --verbose
 
   daisy-target-build:
-    name: Daisy target build (${{ matrix.board }})
+    name: Daisy target build (${{ matrix.board }}, block ${{ matrix.block }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         board: [POD, FIELD]
+        block: [4, 16, 32, 48]
 
     steps:
       - uses: actions/checkout@v4
@@ -78,40 +79,40 @@ jobs:
           make -C examples/daisy_target_delay clean
           make -C examples/daisy_target_delay -j2 \
             BOARD=${{ matrix.board }} \
-            AUDIO_BLOCK_SIZE=48 \
+            AUDIO_BLOCK_SIZE=${{ matrix.block }} \
             ENABLE_PROFILING=1 \
             LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
-          mkdir -p "target-artifacts/${{ matrix.board }}/profile"
+          mkdir -p "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/profile"
           cp examples/daisy_target_delay/build/daisy_target_delay.elf \
              examples/daisy_target_delay/build/daisy_target_delay.bin \
              examples/daisy_target_delay/build/daisy_target_delay.map \
-             "target-artifacts/${{ matrix.board }}/profile/"
+             "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/profile/"
           arm-none-eabi-size examples/daisy_target_delay/build/daisy_target_delay.elf \
-            | tee "target-artifacts/${{ matrix.board }}/profile/size.txt"
+            | tee "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/profile/size.txt"
           arm-none-eabi-size -A examples/daisy_target_delay/build/daisy_target_delay.elf \
-            | tee "target-artifacts/${{ matrix.board }}/profile/sections.txt"
+            | tee "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/profile/sections.txt"
 
       - name: Build profiling-disabled target harness
         run: |
           make -C examples/daisy_target_delay clean
           make -C examples/daisy_target_delay -j2 \
             BOARD=${{ matrix.board }} \
-            AUDIO_BLOCK_SIZE=48 \
+            AUDIO_BLOCK_SIZE=${{ matrix.block }} \
             ENABLE_PROFILING=0 \
             LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
-          mkdir -p "target-artifacts/${{ matrix.board }}/release"
+          mkdir -p "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release"
           cp examples/daisy_target_delay/build/daisy_target_delay.elf \
              examples/daisy_target_delay/build/daisy_target_delay.bin \
              examples/daisy_target_delay/build/daisy_target_delay.map \
-             "target-artifacts/${{ matrix.board }}/release/"
+             "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release/"
           arm-none-eabi-size examples/daisy_target_delay/build/daisy_target_delay.elf \
-            | tee "target-artifacts/${{ matrix.board }}/release/size.txt"
+            | tee "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release/size.txt"
           arm-none-eabi-size -A examples/daisy_target_delay/build/daisy_target_delay.elf \
-            | tee "target-artifacts/${{ matrix.board }}/release/sections.txt"
+            | tee "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release/sections.txt"
 
       - name: Upload target build evidence
         uses: actions/upload-artifact@v4
         with:
-          name: daisy-target-${{ matrix.board }}-block48
-          path: target-artifacts/${{ matrix.board }}
+          name: daisy-target-${{ matrix.board }}-block${{ matrix.block }}
+          path: target-artifacts/${{ matrix.board }}/block${{ matrix.block }}
           if-no-files-found: error
