@@ -167,13 +167,7 @@ void InitCycleCounter() noexcept {
 #endif
 
 float Clamp01(float value) noexcept {
-    if(value < 0.0F) {
-        return 0.0F;
-    }
-    if(value > 1.0F) {
-        return 1.0F;
-    }
-    return value;
+    return phh::ClampNormalized(value);
 }
 
 DelayFirmwareRuntime::ParameterArray DefaultParameters() noexcept {
