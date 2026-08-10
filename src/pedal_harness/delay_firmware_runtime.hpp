@@ -12,6 +12,19 @@
 
 namespace phh {
 
+inline float ClampNormalized(float value, float fallback = 0.0F) noexcept {
+    if(!std::isfinite(value)) {
+        value = fallback;
+    }
+    if(value < 0.0F) {
+        return 0.0F;
+    }
+    if(value > 1.0F) {
+        return 1.0F;
+    }
+    return value;
+}
+
 template <std::size_t Count>
 class RealtimeFloatSnapshotMailbox final {
   public:
