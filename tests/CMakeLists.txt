@@ -76,5 +76,12 @@ target_link_libraries(pedal_harness_tests
 )
 add_test(NAME PedalHarnessContractTests COMMAND pedal_harness_tests)
 
+# Deterministic host characterization used by the Delay product-validation H2
+# gate. It emits machine-readable metrics and fails only for non-finite or
+# unbounded feedback behavior; the direct TIME-jump metric is characterization,
+# not a click-free acceptance claim.
+add_executable(delay_host_characterization delay_host_characterization.cpp)
+target_link_libraries(delay_host_characterization dafx_daisysp)
+
 # Enable testing
 enable_testing()
