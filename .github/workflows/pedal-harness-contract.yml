@@ -12,6 +12,7 @@ on:
       - "tests/test_digital_delay_node.cpp"
       - "tests/test_fractional_delay_node.cpp"
       - "tests/test_delay_firmware_runtime.cpp"
+      - "tests/delay_host_characterization.cpp"
       - "tests/CMakeLists.txt"
       - "examples/daisy_target_delay/**"
       - ".github/workflows/pedal-harness-contract.yml"
@@ -37,13 +38,30 @@ jobs:
           -DBUILD_EXAMPLES=OFF
 
       - name: Build portable harness target
-        run: cmake --build phh-build --target pedal_harness_tests --config Release
+        run: >-
+          cmake --build phh-build
+          --target pedal_harness_tests delay_host_characterization
+          --config Release
 
       - name: Run portable harness tests
         run: >-
           ctest --test-dir phh-build -C Release
           -R "^PedalHarnessContractTests$"
           --output-on-failure --verbose
+
+      - name: Capture host DIGI characterization
+        run: |
+          mkdir -p host-characterization
+          ./phh-build/tests/delay_host_characterization \
+            host-characterization/digi_h2_characterization.csv
+          cat host-characterization/digi_h2_characterization.csv
+
+      - name: Upload host characterization evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: digi-host-h2-characterization
+          path: host-characterization/digi_h2_characterization.csv
+          if-no-files-found: error
 
   daisy-target-build:
     name: Daisy target build (${{ matrix.board }}, block ${{ matrix.block }})
