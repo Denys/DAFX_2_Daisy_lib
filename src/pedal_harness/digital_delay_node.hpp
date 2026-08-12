@@ -20,6 +20,7 @@ class DigitalDelayNode final : public DspNode {
         FeedbackLowCutHz,
         FeedbackHighCutHz,
         InterpolationMode,
+        TimeTransitionMode,
         ParameterCount,
     };
 
@@ -28,13 +29,20 @@ class DigitalDelayNode final : public DspNode {
         CubicLagrange = 1,
     };
 
+    enum class TimeTransitionPolicy : std::uint8_t {
+        Direct = 0,
+        DualReadCrossfade = 1,
+    };
+
+    static constexpr std::size_t kDualReadCrossfadeFrames = 64U;
+
     explicit DigitalDelayNode(std::size_t max_delay_samples) noexcept
         : max_delay_samples_(max_delay_samples) {}
 
     [[nodiscard]] NodeDescriptor Describe() const noexcept override {
         NodeDescriptor descriptor{};
         descriptor.stable_id = "phh.delay.digi.v0";
-        descriptor.schema_version = 2;
+        descriptor.schema_version = 3;
         descriptor.supported_layout = ChannelLayout::Stereo;
         descriptor.default_tail_policy = TailPolicy::Preserve;
         descriptor.resources.persistent_bytes =
@@ -87,7 +95,33 @@ class DigitalDelayNode final : public DspNode {
             return;
         }
 
-        const ReadHead read_head = ResolveReadHead(parameters);
+        const float requested_delay = ResolveRequestedDelay(parameters);
+        const bool cubic = ResolveInterpolationPolicy(parameters);
+        const bool use_crossfade = ResolveTransitionPolicy(parameters);
+
+        if(!delay_state_initialized_) {
+            active_delay_samples_ = requested_delay;
+            target_delay_samples_ = requested_delay;
+            pending_delay_samples_ = requested_delay;
+            delay_state_initialized_ = true;
+        }
+
+        pending_delay_samples_ = requested_delay;
+        if(!use_crossfade) {
+            active_delay_samples_ = requested_delay;
+            target_delay_samples_ = requested_delay;
+            crossfade_frames_remaining_ = 0U;
+        } else if(crossfade_frames_remaining_ == 0U
+                  && DelayChanged(active_delay_samples_, pending_delay_samples_)) {
+            target_delay_samples_ = pending_delay_samples_;
+            crossfade_frames_remaining_ = kDualReadCrossfadeFrames;
+        }
+
+        ReadHead active_head =
+            ResolveReadHead(active_delay_samples_, cubic);
+        const ReadHead target_head =
+            ResolveReadHead(target_delay_samples_, cubic);
+
         const float feedback = ClampFinite(
             parameters.GetOr(Feedback, kDefaultFeedback),
             kDefaultFeedback,
@@ -110,6 +144,11 @@ class DigitalDelayNode final : public DspNode {
         UpdateFeedbackFilters(parameters);
 
         for(std::size_t frame = 0; frame < block.frames; ++frame) {
+            const bool crossfading =
+                use_crossfade && crossfade_frames_remaining_ > 0U;
+            const float crossfade_alpha =
+                crossfading ? CrossfadeAlpha() : 0.0F;
+
             for(std::size_t channel = 0; channel < 2U; ++channel) {
                 float input = block.in[channel][frame];
                 if(!std::isfinite(input)) {
@@ -117,7 +156,12 @@ class DigitalDelayNode final : public DspNode {
                     diagnostics.non_finite_samples += 1U;
                 }
 
-                float delayed = ReadDelayed(channel, read_head);
+                float delayed = ReadDelayed(channel, active_head);
+                if(crossfading) {
+                    const float target_delayed =
+                        ReadDelayed(channel, target_head);
+                    delayed += crossfade_alpha * (target_delayed - delayed);
+                }
                 if(!std::isfinite(delayed)) {
                     delayed = 0.0F;
                     diagnostics.non_finite_samples += 1U;
@@ -138,6 +182,13 @@ class DigitalDelayNode final : public DspNode {
                     diagnostics.non_finite_samples += 1U;
                 }
                 block.out[channel][frame] = output;
+            }
+
+            if(crossfading && AdvanceCrossfade()) {
+                // If the fade completes mid-block, continue from the target
+                // head for the remainder of this same callback rather than
+                // reverting to the stale source head until the next block.
+                active_head = target_head;
             }
 
             write_index_ += 1U;
@@ -171,28 +222,46 @@ class DigitalDelayNode final : public DspNode {
     static constexpr float kDefaultDryMix = 1.0F;
     static constexpr float kDefaultWetMix = 0.0F;
     static constexpr float kDefaultLowCutHz = 0.0F;
+    static constexpr float kDelayChangeEpsilon = 1.0e-6F;
 
-    [[nodiscard]] ReadHead ResolveReadHead(
+    [[nodiscard]] float ResolveRequestedDelay(
         const ParameterSnapshot& parameters) const noexcept {
         float requested = parameters.GetOr(DelaySamples, 1.0F);
         if(!std::isfinite(requested)) {
             requested = 1.0F;
         }
-        requested = std::clamp(requested,
-                               1.0F,
-                               static_cast<float>(max_delay_samples_));
+        return std::clamp(requested,
+                          1.0F,
+                          static_cast<float>(max_delay_samples_));
+    }
 
-        ReadHead head{};
-        head.base_delay = static_cast<std::size_t>(requested);
-        head.fraction = requested - static_cast<float>(head.base_delay);
-        head.one_minus_fraction = 1.0F - head.fraction;
-
+    [[nodiscard]] bool ResolveInterpolationPolicy(
+        const ParameterSnapshot& parameters) const noexcept {
         const float policy_value = ClampFinite(
             parameters.GetOr(InterpolationMode, 0.0F),
             0.0F,
             0.0F,
             1.0F);
-        head.cubic = policy_value >= 0.5F && head.base_delay >= 2U
+        return policy_value >= 0.5F;
+    }
+
+    [[nodiscard]] bool ResolveTransitionPolicy(
+        const ParameterSnapshot& parameters) const noexcept {
+        const float policy_value = ClampFinite(
+            parameters.GetOr(TimeTransitionMode, 0.0F),
+            0.0F,
+            0.0F,
+            1.0F);
+        return policy_value >= 0.5F;
+    }
+
+    [[nodiscard]] ReadHead ResolveReadHead(float requested,
+                                           bool cubic_requested) const noexcept {
+        ReadHead head{};
+        head.base_delay = static_cast<std::size_t>(requested);
+        head.fraction = requested - static_cast<float>(head.base_delay);
+        head.one_minus_fraction = 1.0F - head.fraction;
+        head.cubic = cubic_requested && head.base_delay >= 2U
                      && head.fraction > 0.0F;
         if(head.cubic) {
             const float mu = head.fraction;
@@ -206,6 +275,32 @@ class DigitalDelayNode final : public DspNode {
                 (mu + 1.0F) * mu * (mu - 1.0F) / 6.0F;
         }
         return head;
+    }
+
+    [[nodiscard]] bool DelayChanged(float a, float b) const noexcept {
+        return std::fabs(a - b) > kDelayChangeEpsilon;
+    }
+
+    [[nodiscard]] float CrossfadeAlpha() const noexcept {
+        if(kDualReadCrossfadeFrames <= 1U) {
+            return 1.0F;
+        }
+        const std::size_t completed =
+            kDualReadCrossfadeFrames - crossfade_frames_remaining_;
+        return static_cast<float>(completed)
+               / static_cast<float>(kDualReadCrossfadeFrames - 1U);
+    }
+
+    [[nodiscard]] bool AdvanceCrossfade() noexcept {
+        if(crossfade_frames_remaining_ == 0U) {
+            return false;
+        }
+        crossfade_frames_remaining_ -= 1U;
+        if(crossfade_frames_remaining_ == 0U) {
+            active_delay_samples_ = target_delay_samples_;
+            return true;
+        }
+        return false;
     }
 
     [[nodiscard]] std::size_t IndexAtDelay(std::size_t delay) const noexcept {
@@ -306,6 +401,11 @@ class DigitalDelayNode final : public DspNode {
             low_pass_output_[channel] = 0.0F;
         }
         write_index_ = 0U;
+        active_delay_samples_ = 1.0F;
+        target_delay_samples_ = 1.0F;
+        pending_delay_samples_ = 1.0F;
+        crossfade_frames_remaining_ = 0U;
+        delay_state_initialized_ = false;
     }
 
     std::size_t max_delay_samples_ = 0U;
@@ -318,8 +418,13 @@ class DigitalDelayNode final : public DspNode {
     float low_pass_output_[2] = {0.0F, 0.0F};
     float high_pass_pole_ = 0.0F;
     float low_pass_alpha_ = 1.0F;
+    float active_delay_samples_ = 1.0F;
+    float target_delay_samples_ = 1.0F;
+    float pending_delay_samples_ = 1.0F;
+    std::size_t crossfade_frames_remaining_ = 0U;
     bool high_pass_enabled_ = false;
     bool low_pass_enabled_ = false;
+    bool delay_state_initialized_ = false;
     bool prepared_ = false;
 };
 
