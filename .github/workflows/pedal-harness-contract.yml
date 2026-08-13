@@ -99,6 +99,7 @@ jobs:
             BOARD=${{ matrix.board }} \
             AUDIO_BLOCK_SIZE=${{ matrix.block }} \
             ENABLE_PROFILING=1 \
+            TIME_TRANSITION=DIRECT \
             LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
           mkdir -p "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/profile"
           cp examples/daisy_target_delay/build/daisy_target_delay.elf \
@@ -117,6 +118,7 @@ jobs:
             BOARD=${{ matrix.board }} \
             AUDIO_BLOCK_SIZE=${{ matrix.block }} \
             ENABLE_PROFILING=0 \
+            TIME_TRANSITION=DIRECT \
             LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
           mkdir -p "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release"
           cp examples/daisy_target_delay/build/daisy_target_delay.elf \
@@ -127,6 +129,26 @@ jobs:
             | tee "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release/size.txt"
           arm-none-eabi-size -A examples/daisy_target_delay/build/daisy_target_delay.elf \
             | tee "target-artifacts/${{ matrix.board }}/block${{ matrix.block }}/release/sections.txt"
+
+      - name: Build Pod crossfade profiling candidate
+        if: matrix.board == 'POD' && (matrix.block == 4 || matrix.block == 48)
+        run: |
+          make -C examples/daisy_target_delay clean
+          make -C examples/daisy_target_delay -j2 \
+            BOARD=POD \
+            AUDIO_BLOCK_SIZE=${{ matrix.block }} \
+            ENABLE_PROFILING=1 \
+            TIME_TRANSITION=CROSSFADE \
+            LIBDAISY_DIR="$GITHUB_WORKSPACE/external/libDaisy"
+          mkdir -p "target-artifacts/POD/block${{ matrix.block }}/crossfade-profile"
+          cp examples/daisy_target_delay/build/daisy_target_delay.elf \
+             examples/daisy_target_delay/build/daisy_target_delay.bin \
+             examples/daisy_target_delay/build/daisy_target_delay.map \
+             "target-artifacts/POD/block${{ matrix.block }}/crossfade-profile/"
+          arm-none-eabi-size examples/daisy_target_delay/build/daisy_target_delay.elf \
+            | tee "target-artifacts/POD/block${{ matrix.block }}/crossfade-profile/size.txt"
+          arm-none-eabi-size -A examples/daisy_target_delay/build/daisy_target_delay.elf \
+            | tee "target-artifacts/POD/block${{ matrix.block }}/crossfade-profile/sections.txt"
 
       - name: Upload target build evidence
         uses: actions/upload-artifact@v4

@@ -22,6 +22,10 @@
 #define PHH_ENABLE_PROFILING 1
 #endif
 
+#ifndef PHH_TIME_TRANSITION_CROSSFADE
+#define PHH_TIME_TRANSITION_CROSSFADE 0
+#endif
+
 namespace {
 
 using phh::DelayFirmwareRuntime;
@@ -33,8 +37,12 @@ constexpr std::size_t kMaxDelaySamples = 2U * 48000U;
 constexpr std::size_t kArenaBytes = 1024U * 1024U;
 constexpr std::size_t kProfileSamples = 4096U;
 constexpr float kMaxHarnessFeedback = 0.95F;
+constexpr bool kUseCrossfade = PHH_TIME_TRANSITION_CROSSFADE != 0;
 
 static_assert(kAudioBlockFrames > 0U, "Audio block size must be non-zero");
+static_assert(PHH_TIME_TRANSITION_CROSSFADE == 0
+                  || PHH_TIME_TRANSITION_CROSSFADE == 1,
+              "PHH_TIME_TRANSITION_CROSSFADE must be 0 or 1");
 static_assert(std::atomic<std::uint32_t>::is_always_lock_free,
               "32-bit atomics must be lock-free in the audio path");
 
@@ -48,8 +56,6 @@ TargetBoard g_hardware;
 constexpr const char* kBoardName = "DaisyField";
 #endif
 
-// The portable delay owns its history through StaticArena. Keep the backing
-// store in external SDRAM so long-delay traffic is explicit and inspectable.
 __attribute__((section(".sdram_bss")))
 std::uint8_t g_arena_storage[kArenaBytes];
 
@@ -119,8 +125,6 @@ class ProfileCapture final {
             return false;
         }
 
-        // Audio callback stops writing while ready_ is true. Sorting and
-        // reporting therefore happen outside the callback without races.
         std::sort(samples_.begin(), samples_.begin() + count_);
 
         std::uint64_t sum = 0U;
@@ -170,9 +174,13 @@ float Clamp01(float value) noexcept {
     return phh::ClampNormalized(value);
 }
 
+const char* TimeTransitionName() noexcept {
+    return kUseCrossfade ? "crossfade64" : "direct";
+}
+
 DelayFirmwareRuntime::ParameterArray DefaultParameters() noexcept {
     DelayFirmwareRuntime::ParameterArray parameters{};
-    parameters[DigitalDelayNode::DelaySamples] = 24000.0F; // 500 ms at 48 kHz
+    parameters[DigitalDelayNode::DelaySamples] = 24000.0F;
     parameters[DigitalDelayNode::Feedback] = 0.35F;
     parameters[DigitalDelayNode::InputSend] = 1.0F;
     parameters[DigitalDelayNode::DryMix] = 0.5F;
@@ -181,6 +189,8 @@ DelayFirmwareRuntime::ParameterArray DefaultParameters() noexcept {
     parameters[DigitalDelayNode::FeedbackHighCutHz] =
         g_sample_rate_hz * 0.49F;
     parameters[DigitalDelayNode::InterpolationMode] = 0.0F;
+    parameters[DigitalDelayNode::TimeTransitionMode] =
+        kUseCrossfade ? 1.0F : 0.0F;
     return parameters;
 }
 
@@ -202,9 +212,6 @@ DelayFirmwareRuntime::ParameterArray MapHarnessControls(
 }
 
 void ServiceControlDomain() noexcept {
-    // Board scanning, gesture handling and parameter mapping all live outside
-    // the audio callback. The resulting complete parameter set is published as
-    // one bounded coherent block snapshot.
     g_hardware.ProcessAllControls();
 
     float time_normalized = 0.5F;
@@ -296,7 +303,8 @@ void PrintBootRecord() noexcept {
 
     daisy::DaisySeed::PrintLine(
         "PHH_TARGET board=%s fs=%lu block=%lu sysclk=%lu arena_used=%lu "
-        "arena_capacity=%lu arena_region=%d max_delay=%lu profile=%d",
+        "arena_capacity=%lu arena_region=%d max_delay=%lu profile=%d "
+        "transition=%s",
         kBoardName,
         static_cast<unsigned long>(g_sample_rate_hz),
         static_cast<unsigned long>(kAudioBlockFrames),
@@ -305,7 +313,8 @@ void PrintBootRecord() noexcept {
         static_cast<unsigned long>(kArenaBytes),
         static_cast<int>(arena_region),
         static_cast<unsigned long>(g_runtime.MaxDelaySamples()),
-        static_cast<int>(PHH_ENABLE_PROFILING));
+        static_cast<int>(PHH_ENABLE_PROFILING),
+        TimeTransitionName());
 }
 
 #if PHH_ENABLE_PROFILING
@@ -318,7 +327,7 @@ void ServiceDiagnosticsDomain() noexcept {
     daisy::DaisySeed::PrintLine(
         "PHH_PROFILE board=%s samples=%lu avg=%lu p999=%lu max=%lu "
         "budget=%lu overruns=%lu snapshot_misses=%lu param_gen=%lu "
-        "interp=%s audio_state=%s flush_remaining=%lu",
+        "interp=%s transition=%s audio_state=%s flush_remaining=%lu",
         kBoardName,
         static_cast<unsigned long>(summary.sample_count),
         static_cast<unsigned long>(summary.average_cycles),
@@ -329,6 +338,7 @@ void ServiceDiagnosticsDomain() noexcept {
         static_cast<unsigned long>(g_runtime.SnapshotMisses()),
         static_cast<unsigned long>(g_runtime.ActiveParameterGeneration()),
         g_gestures.UseCubic() ? "cubic" : "linear",
+        TimeTransitionName(),
         AudioStateName(g_runtime.PublishedAudioState()),
         static_cast<unsigned long>(g_runtime.FlushFramesRemaining()));
 }
@@ -376,9 +386,6 @@ int main(void) {
         ServiceDiagnosticsDomain();
 #endif
 
-        // Tempo/MIDI, display/UI rendering and storage are intentionally not
-        // active in this first DIGI graph. When introduced, they remain main-
-        // loop services and must not migrate into AudioCallback.
         daisy::System::Delay(1U);
     }
 }
