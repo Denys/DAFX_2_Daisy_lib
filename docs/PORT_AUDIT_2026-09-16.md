@@ -488,10 +488,18 @@ samples, normally a 1024-point transform; the 512-point product has already wrap
 samples 512–766 onto 0–254 before the overlap buffers are read. Those buffers are
 `HRIR_LENGTH` = 256 long and so could not carry the full 511-sample tail even if their
 scheduling were right. **Repairing the overlap-add alone therefore does not remove the
-circular convolution**, which is how the previous paragraph's remedy was stated; the
-transform has to grow, or the convolution has to be partitioned, or the response has to be
-truncated to a documented length with the shift applied first. Found by the Codex review on
-PR #9.
+circular convolution**, which is how the previous paragraph's remedy was stated.
+
+**Nor does simply growing `FFT_SIZE`.** The inverse is designed over every bin of the same
+transform that then performs the convolution, so raising `FFT_SIZE` to 1024 produces a
+*1024*-sample inverse, which needs 1024 + 256 − 1 = 1279 samples of linear convolution —
+and so on upward. No value of a single coupled constant satisfies the sizing rule, because
+the response length grows with it. The design size and the convolution size have to be
+**decoupled**: design the inverse at whatever resolution is wanted, truncate it (after the
+`fftshift`) to a documented finite length `L`, and then either transform at
+`L + HRIR_LENGTH − 1` rounded up, or partition the convolution. An earlier revision of this
+paragraph listed "a larger transform" as one of three acceptable remedies; that option does
+not exist while the two sizes are the same constant. Found by the Codex review on PR #9.
 
 **With `HRIR_LENGTH > 256` the module reads off the end of the stack.** `VERIFIED` under
 ASan, and this one is memory safety rather than correctness. `HRIR_LENGTH` is a public
@@ -541,16 +549,30 @@ by computing both at 48 kHz:
 | release coeff | 0.003000 | 0.006920 | 0.4× |
 | `tav` | 0.010000 | 0.002083 | 4.8× |
 
-As equivalent time constants: the reference attacks in **0.68 ms** and releases in
-**6.93 ms**; the port attacks in **30 ms** and releases in **3 ms**. The port's attack is
-ten times *slower* than its release — the reference's relationship inverted, not merely
-rescaled. A compressor with that shape lets transients through and then pumps.
+As equivalent time constants — `t = −1 / (fs · ln(1 − c))` — the reference attacks in
+**0.684 ms** and releases in **6.934 ms** *at 48 kHz*, the rate the port defaults to; the
+port attacks in **30 ms** and releases in **3 ms**. The port's attack is ten times *slower*
+than its release — the reference's relationship inverted, not merely rescaled. A compressor
+with that shape lets transients through and then pumps.
+
+**`compexp.m` states no sample rate**, so its `at`/`rt` are per-sample coefficients and the
+equivalent times depend on the rate chosen for the comparison:
+
+| | `at = 0.03` | `rt = 0.003` |
+|---|---:|---:|
+| at 44.1 kHz | 0.7445 ms | 7.5472 ms |
+| at 48 kHz | 0.6840 ms | 6.9340 ms |
 
 Interpreting the numbers as times is the right instinct, since raw coefficients are
 sample-rate dependent and do not port. Carrying the reference's literal values across the
 unit change is what produces the defect: the constants look like they match `compexp.m`
-and do not. `PROPOSED`: pick time constants that reproduce the reference's coefficients at
-44.1 kHz (≈0.68 ms and ≈6.9 ms) and say in the header that they were converted.
+and do not. `PROPOSED`: derive the time constants from the rate the port is running at,
+rather than hard-coding either row of that table — at 44.1 kHz the pair is 0.7445 ms and
+7.5472 ms, at 48 kHz 0.6840 ms and 6.9340 ms — and say in the header that they were
+converted, and from which coefficients. An earlier revision proposed "≈0.68 ms and ≈6.9 ms"
+while naming 44.1 kHz as the target rate; those are the 48 kHz values, and using them at
+44.1 kHz reproduces 0.0328 and 0.00328 instead of 0.03 and 0.003 — about 9 % out. Found by
+the Codex review on PR #9.
 
 **(b) The expansion curve is inverted, and the correct slope is unreachable.** `VERIFIED`
 
@@ -595,10 +617,16 @@ itself, which still holds the sample from `MaxDelay` calls ago — so the natura
 "no lookahead" setting is the **longest** delay the buffer can express, and the first
 `MaxDelay` outputs are the zeroed buffer. `SetLookahead()` accepts zero without comment
 (`:161-163`) and the header documents no positive-only precondition, so this is reachable
-from the public API at its most obvious boundary value. `PROPOSED`: bypass the delay line
-when `lookahead_ == 0`, or read at `(write_ptr_ + MaxDelay - lookahead_ - 1) % MaxDelay`
-so that zero means the current sample — and either way document the supported range.
-Found by the Codex review on PR #9.
+from the public API at its most obvious boundary value.
+
+`PROPOSED`: **bypass the delay line when `lookahead_ == 0`**, or reorder `Process()` to
+write the input before it reads. Only those two give zero lookahead. An earlier revision of
+this paragraph also offered reading at
+`(write_ptr_ + MaxDelay - lookahead_ - 1) % MaxDelay`; that is wrong, and wrong in the same
+direction as the defect it was meant to repair. Because the read still precedes the write,
+index `write_ptr_ - 1` holds the *previous* input, so the alternative turns a
+`MaxDelay`-sample delay into a one-sample delay rather than none. Document the supported
+range either way. Found by the Codex review on PR #9.
 
 ### 2.11 Undocumented real-time deviations in `Tube`
 
@@ -1209,8 +1237,9 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    size the transform for the filter actually computed — the inverse is a full 512-sample
    response (32.9 % of its energy beyond sample 255), so a 256-sample block needs 767
    points, and **fixing the overlap-add scheduling alone leaves the wrap in place**; this
-   step is a larger transform, a partitioned convolution, or a documented truncation, and it
-   subsumes the first fix. Only then the overlap-add, which folds each transform's tail onto
+   step is a documented truncation of the inverse followed by a transform sized for it, or
+   a partitioned convolution — **not** simply a larger `FFT_SIZE`, which lengthens the
+   inverse by the same amount it lengthens the transform. It subsumes the first fix. Only then the overlap-add, which folds each transform's tail onto
    its own head, and last the missing `fftshift`, which cannot be assessed until the rest
    holds.
 
@@ -1245,7 +1274,13 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 11. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
    makes it worse. Then the two-pole envelope detector (2.1d), without which the timing
-   still will not match the reference.
+   still will not match the reference. Then document the two whole-signal normalisations
+   the streaming port cannot reproduce (2.1e): `noisegt.m` scales both the envelope and the
+   output by peaks taken over the entire input, so even a fully repaired gate crosses its
+   thresholds at different levels and emits a different gain for any signal whose peak is
+   not already unity. The header is silent about it. This is the same kind of task as the
+   `Tube` documentation item, and it is not optional: without it the module's behaviour
+   still does not match what a reader of the reference would expect.
 12. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
 13. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
