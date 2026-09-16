@@ -30,13 +30,40 @@ essentially no numerical validation against MATLAB, so it passes while several m
 are functionally dead.
 
 `VERIFIED` — test suite built with GCC 12 and executed: 151/151 pass.
-`VERIFIED` — of 38 test files, only `test_princarg.cpp` compares against a MATLAB
-reference value. The assertion population is dominated by getter/setter echo
+
+Three separate reasons that number means nothing:
+
+**(a) Nine of 29 test files are excluded from the build.** `tests/CMakeLists.txt`
+comments six of them out and never lists the other three:
+
+| Excluded test | How | Module's audit verdict |
+|---|---|---|
+| `test_tonestack.cpp` | commented, `# TODO: Fix SetMid/GetMid API mismatch` | 2.3 — no filter at all |
+| `test_sola.cpp` | commented, no reason given | 2.16 — does not implement SOLA |
+| `test_yin.cpp` | commented, `# TODO: Add M_PI include` | 2.17 — streaming mode broken |
+| `test_fdn_reverb.cpp` | commented, no reason given | core bit-exact |
+| `test_xcorr.cpp` | commented, `# TODO: Add M_PI include` | normalisation differs |
+| `test_envelopefollower.cpp` | commented, `# TODO: Add M_PI include` | correct |
+| `test_universal_comb.cpp` | never listed | 2.5 — `SetAllpass` is an identity |
+| `test_compressor_expander.cpp` | never listed | 2.10 — RMS time overwritten |
+| `test_lp_iir_comb.cpp` | never listed | LP filter is not the book's |
+
+The exclusions correlate with the defects. Four of the nine untested modules are among
+the worst in this audit. `test_sola.cpp:95` asserts `EXPECT_GT(slow_len, unity_len)` at
+stretch 0.5, which the shipped code contradicts (3072 vs 6144) — that assertion would be
+red if the file were compiled, which is presumably why it is not.
+
+**(b) Of the 20 files that do build, only `test_princarg.cpp` compares against a MATLAB
+reference value.** The assertion population is dominated by getter/setter echo
 (`EXPECT_FLOAT_EQ` on `GetX()` after `SetX()`), finiteness (`std::isfinite`),
 zero-in/zero-out and `EXPECT_NO_THROW`. No test checks a transfer function, an impulse
-response, or a sample-by-sample comparison against a `.m` file.
+response, or a sample stream against a `.m` file.
 
-Consequence: **every defect in section 2 below is invisible to the current suite.**
+**(c) `SpectralFilter` is never instantiated at its default size**, which is why 2.12
+(a hard compile error at `SpectralFilter<1280>`) survived.
+
+Consequence: **every defect in section 2 below is invisible to the current suite**, and a
+green run carries no information about correctness.
 
 ---
 
@@ -362,6 +389,88 @@ exceeds a 48-sample block's budget on a Cortex-M7. `PhaseVocoder` also holds rou
 150 KB per instance at N = 2048 and puts 8–16 KB frames on the callback stack. The work
 needs amortising across hops before any of this runs on a Daisy.
 
+### 2.15 `Vibrato` — heap overflow reachable from the public API
+
+`src/modulation/vibrato.cpp:22-39`. `RecalculateCoefficients()` recomputes
+`delay_line_size_` on every `SetWidth()`/`SetFrequency()` call, but `delay_line_` is
+allocated once, in `Init()`. `Init(48000)` followed by `SetWidth(0.05f)` — a value inside
+the range the header documents at `vibrato.h:10` (0.0001–0.1 s) — grows the logical size
+from 722 to 7202 floats against a 722-float allocation.
+
+`VERIFIED` under AddressSanitizer:
+```
+ERROR: AddressSanitizer: heap-buffer-overflow
+READ of size 4 ... in daisysp::Vibrato::Process at vibrato.cpp:61
+```
+Line 43 writes out of bounds on the same path. On a Cortex-M7 with no MMU this is silent
+memory corruption rather than a crash. `tests/test_vibrato.cpp:28` already calls
+`SetWidth(0.01f)` after `Init` and escapes only because it never calls `Process()`
+afterwards.
+
+Two further defects in the same file:
+
+- **The LFO runs on a wrapping pointer.** `vibrato.cpp:46` computes the modulator from
+  `write_ptr_`, which wraps modulo `delay_line_size_`. At the defaults (5 Hz, 5 ms,
+  48 kHz) the buffer is 722 samples, so the "5 Hz sine" restarts every 722 samples —
+  **66.5 Hz** — and its phase only ever spans 0→0.472 rad, so the modulator ramps
+  0 → 0.455 and snaps back. It is a sawtooth at 45 % depth, not a sine. The fix is a
+  free-running phase accumulator.
+- **The interpolation reads the wrong tap pair.** `vibrato.m:32` blends delay `i`
+  (weight `frac`) with delay `i−1` (weight `1−frac`); `vibrato.cpp:56-61` blends delay
+  `i` with delay `i+1` — the older neighbour. The effective delay is long by `2−2·frac`
+  samples, a 2-sample sawtooth riding on the delay trajectory. Correcting both the
+  pointers and the phase reproduces the MATLAB delay trajectory to ±2.8e-14.
+
+`vibrato.h:34` also leaves `delay_line_` uninitialised in the constructor while the
+destructor tests it against `nullptr` and calls `delete[]`, and there is no rule of three.
+
+### 2.16 `SOLATimeStretch` — the synchronisation step is computed and discarded
+
+`src/effects/sola_time_stretch.h` vs `M_files_chap06/TimeScaleSOLA.m`.
+
+SOLA is *synchronised* overlap-add: a cross-correlation search picks the lag at which the
+incoming grain best aligns with the output tail. This port computes `optimal_offset` and
+then never applies it. At `sola_time_stretch.h:192` it feeds only a `fade_len` expression
+that is immediately clamped to `synthesis_hop_`; since `offset ≤ 127` and
+`grain_size_ ≥ 1024`, that clamp always binds, and line 211 indexes `current_grain_[i]`
+rather than `[offset+i]`. The result is plain unsynchronised overlap-add.
+
+Proof: forcing `offset` to 0, 1, 63 or 127 produces **bit-identical** output at stretch
+0.5, 1.0 and 1.5 (`max|diff| = 0.000e+00`). On a 500 Hz sine at α = 1.5 the reference
+gives −30.2 dB sidebands and −0.5 dB level loss; this code gives **+79.9 dB sidebands**
+and −4.5 dB loss.
+
+The streaming path is separately non-functional: `OutputAvailable()` goes false while
+`grain_ready_` is still set, and only `GetOutput()` clears the flag. 200 000 input samples
+at α = 1.5 yield **1 grain and 384 output samples** where ~300 000 are expected. Forcing
+the flag clear collapses the analysis hop to 1 sample and produces 75 816 000 samples —
+379× the input. `sola_time_stretch.h:321` also resets the output tail to the *start* of
+the previous grain, so a second grain would splice unrelated audio.
+
+The crossfade is also 4.7–14× shorter than the reference (256 or 384 samples against a
+measured 1560–1818), the correlation searches only non-negative lags where `xcorr`
+searches ±(L−1), and the header's "0.5 = half speed / slower playback" documentation is
+inverted with respect to the code's own `Ss = Sa·α`.
+
+This needs a rewrite rather than a patch.
+
+### 2.17 `YIN` — block mode correct, streaming mode analyses a rotated frame
+
+`src/analysis/yin.h`. The algorithm itself is right, and deliberately closer to canonical
+YIN than `yinDAFX.m` is: `d'(0)` is set to 1 explicitly, the running sum starts at τ=1,
+the search takes the first dip below threshold and descends to the *local* minimum, and
+the parabolic interpolation sign and scale are correct. Block mode on a 220 Hz frame
+returns **220.0008 Hz at confidence 0.99997**, and the interpolation improves the estimate
+600× over the integer-τ result.
+
+The streaming path is broken: `ProcessSample` writes into a ring buffer modulo
+`YinLen+MaxTau` (`yin.h:144`) but `ComputeDifferenceFunction` reads linearly from index 0
+(`yin.h:315`) with no rotation by `input_pos_`. The analysis frame is a rotated copy of
+the signal with a splice whose position moves every hop. On a clean, noise-free 220 Hz
+tone only **114 of 187 frames** come back voiced, with five frames reporting `f0 = 0`.
+Block mode on the same signal is exact. `Process()` is usable as-is; `ProcessSample()` is
+not.
+
 ---
 
 ## 3. Verified-correct modules
@@ -398,6 +507,38 @@ These were compared line by line and, where noted, numerically:
   ipsi/contra channel routing both check out term by term. No channel swap.
 - **`Whisperization`** phase/magnitude handling and **`Robotization`** spectral core —
   both exact; see 2.13 for the buffering that defeats them.
+- **`YIN`** block mode — `VERIFIED` 220.0008 Hz at confidence 0.99997 on a 220 Hz frame,
+  correct on silence and on noise, ASAN-clean. Only `ProcessSample()` is broken (2.17).
+- **`Vibrato`** coefficient derivation — `DELAY`, `WIDTH` and the buffer length all match
+  `vibrato.m:12-21`; the effect is 100 % wet as the reference is, with no undocumented
+  mix control. The defects are in the buffer lifetime, the LFO phase and the taps (2.15).
+
+### Scope summary
+
+Counting a module as **clean** only where its audio path matches the reference with no
+finding above MINOR:
+
+| Group | Clean | Defective | Modules |
+|---|---:|---:|---|
+| Filters | 2 | 1 | ✔ LowShelving, PeakFilter — ✘ HighShelving |
+| Delay / comb / reverb | 1 | 3 | ✔ FDNReverb — ✘ UniversalComb, LPIIRComb, CircularBuffer |
+| Dynamics / nonlinear | 3 | 4 | ✔ Tube, RingMod, EnvelopeFollower — ✘ NoiseGate, WahWah, ToneStack, CompressorExpander |
+| Spatial | 0 | 3 | ✘ StereoPan, CrosstalkCanceller, SimpleHRIR |
+| Spectral | 0 | 4 | ✘ Robotization, Whisperization, SpectralFilter, PhaseVocoder |
+| Time-domain pitch/time | 0 | 3 | ✘ SOLATimeStretch, Vibrato, YIN |
+| Low-level utility | 3 | 1 | ✔ FFTHandler, princarg, Windows — ✘ xcorr |
+| **Total** | **9** | **19** | |
+
+Three of the nineteen are defective only in a preset, a parameter path or one mode
+(`UniversalComb`, `CompressorExpander`, `YIN`) and have a correct core. `FDNReverb` and
+`Tube` are listed clean on their audio path but each carries a documented deviation —
+non-prime delay lengths after sample-rate scaling, and dropped whole-signal normalisation
+respectively.
+
+The shape of the result matters more than the count: **the low-level layer is sound and
+the wrappers around it are not.** Every FFT, window, phase-unwrap and matrix-algebra check
+passed. Almost every failure is in buffering, state management, or a parameter mapping —
+not in the DSP mathematics.
 
 ---
 
@@ -444,22 +585,64 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 ## 5. Recommended order of work
 
-1. `NoiseGate` — all three defects together (2.1). The module is non-functional.
-2. `WahWah` — restore a real LFO accumulator and normalise the denominator (2.2).
-3. `ToneStack` — implement actual filters or rename the class and withdraw the claim (2.3).
-4. `HighShelving` — one-line coefficient fix (2.4).
-5. `UniversalComb::SetAllpass` — one-line preset fix (2.5).
-6. `CircularBuffer` — clamp and document the valid delay domain (2.6).
-7. Fix the GCC build (4.1) so the suite can run in CI on the toolchain family that
-   actually matters.
-8. **Replace the smoke tests with reference comparisons.** Every defect above was found
-   by comparing against MATLAB and none by the existing 151 tests. Until the suite
-   compares transfer functions or sample streams against the `.m` files, a green run
-   means nothing about correctness.
+**Memory safety first**, because it corrupts silently on a target with no MMU:
+
+1. `Vibrato` — the `SetWidth` heap overflow (2.15), then the LFO phase and the
+   interpolation taps.
+
+**Then the one-line fixes**, which buy the most correctness per unit of risk:
+
+2. `HighShelving:43` — the cut coefficient (2.4).
+3. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
+4. `PhaseVocoder:256` — `tstretch = pitch_ratio_` (2.13); measured to make every upward
+   ratio exact.
+5. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
+   Nothing else in that file can be tested until this is resolved.
+
+**Then the modules that are non-functional as shipped:**
+
+6. `NoiseGate` — all three defects together (2.1); fixing the condition alone makes it
+   worse.
+7. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
+8. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
+   `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
+9. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
+   The spectral cores are already exact, so this is the only thing between them and a
+   correct port.
+10. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
+11. `SOLATimeStretch` — rewrite (2.16).
+12. `CircularBuffer` — clamp and document the valid delay domain (2.6).
+
+**Then the process problems, which are what let all of the above ship:**
+
+13. Restore the nine excluded test files to the build (1a) and fix what turns red.
+14. Fix the GCC build (4.1) so the suite can run in CI on the toolchain family that
+    actually matters.
+15. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+    found by comparing against MATLAB; none by the existing 151 tests. The cheapest
+    durable fix is a golden-vector harness: for each module, store a short input and the
+    MATLAB output, and assert agreement to a stated tolerance. The drivers written for
+    this audit are a working template.
+
+### Defects in the MATLAB references themselves
+
+Record these in `dafx_bugs.md` **before** anyone writes bit-exactness tests, or the tests
+will be written against the wrong target:
+
+- `lpiircomb.m:21` assigns `xhhold` where every other line uses `xhold`, so that variable
+  stays 0 for the whole run. The C++ implements the intended equation. `DERIVED`.
+- `TimeScaleSOLA.m:46` applies the `xcorr` lag with an inverted sign. Negating it measures
+  up to 56 dB better on pure tones with no level loss. `DERIVED`.
+- `yinDAFX.m:43` starts its cumulative-mean sum at τ=2 while still multiplying by τ, so it
+  omits `d(1)` from the denominator and is not canonical YIN. The C++ is canonical and
+  therefore will not match it at small τ. `DERIVED`.
+- `yinDAFX.m:53` can index `yinTemp(taumax+1)`, past the end. The C++ bounds the descent.
 
 ## 6. Checks not run
 
-- Target-hardware build, timing, CPU load and audio behaviour: `NOT_RUN`.
-- `src/spectral/*`, `src/analysis/yin.h`, `src/effects/sola_time_stretch.h`,
-  `src/spatial/*`, `src/utility/{fft_handler,windows,xcorr,simple_hrir}.h`,
-  `src/modulation/vibrato.*`: see sections added below.
+- Target-hardware build, timing, CPU load, audio, electrical and product readiness:
+  `NOT_RUN`. Nothing in this audit was executed on a Daisy.
+- `src/pedal_harness/*.hpp` — harness code, not a DAFX port; out of scope here.
+- `CrosstalkCanceller`'s end-to-end degradation from the missing `fftshift` (2.9) is
+  `DERIVED` from the reference computation, not measured against the shipped C++.
+- Frame-burst CPU cost (2.14) is `DERIVED` from the code, not profiled on target.
