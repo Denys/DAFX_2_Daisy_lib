@@ -323,10 +323,30 @@ happens first and a guard placed only on the modulo would not stop it. `Read()` 
 exposed in both: with `size_ == 0` the clamp computes `size_ - 1`, which wraps to
 `SIZE_MAX`. Found by the Codex review on PR #9.
 
+**Clamping the public delay to 1 does not settle it, because `ReadCubic()` reaches below
+its own argument.** `VERIFIED` by reading and by the worked example below.
+`circularbuffer.h:109-113` already clamps `delay_samples` to at least `1.0f`, but the
+four-point Hermite stencil at `:118-121` then evaluates `Read(delay_int - 1)`. For any
+delay in `[1, 2)` that is `Read(0)` — the tap this section is about. On the same 8-deep
+buffer holding 1…8, `ReadCubic(1.5)` takes its first control point from the *oldest*
+sample:
+
+```
+ReadCubic(1.5)  control points y0..y3 = Read(0), Read(1), Read(2), Read(3)
+                                      =    1.0,     8.0,     7.0,     6.0
+```
+
+so the interpolation blends the newest three samples with the oldest one and produces a
+discontinuity rather than a smooth tap. The remedy has to be chosen for the whole file:
+either fix `Read(0)` to mean what it documents — the newest sample — or raise
+`ReadCubic`'s own lower clamp to `2.0f` so the stencil never reaches the broken tap.
+Clamping only the caller-facing delay leaves this in place. Found by the Codex review on
+PR #9.
+
 `PROPOSED`: clamp the lower bound to `1.0f` and document the domain — **in both classes** —
-delete or implement `DynamicCircularBuffer`'s copy and move operations, and reject or clamp
-a zero `size` in both `Init()` bodies rather than documenting a precondition callers cannot
-see.
+raise `ReadCubic`'s clamp to `2.0f` or repair `Read(0)` outright, delete or implement
+`DynamicCircularBuffer`'s copy and move operations, and reject or clamp a zero `size` in
+both `Init()` bodies rather than documenting a precondition callers cannot see.
 
 ### 2.7 `SimpleHRIR` — the ITD carries no left/right information
 
@@ -503,7 +523,7 @@ range where the ITD collapses to zero.
 The 2×2 complex matrix algebra and the ipsi/contra channel routing were both checked
 term by term and are **correct** — no channel swap.
 
-### 2.10 `CompressorExpander` — wrong coefficients, and an inverted expansion curve
+### 2.10 `CompressorExpander` — wrong coefficients, an inverted expansion curve, a clobbered setter and a broken zero-lookahead
 
 `src/dynamics/compressor_expander.h:52-53, 205-212` vs `M_files_chap04/compexp.m:13-15`.
 
@@ -566,6 +586,19 @@ and is called from `SetAttackTime()`, `SetReleaseTime()` and `Init()`. Any calle
 the RMS window and *then* touches attack or release silently loses it. The same line also
 makes the constructor's `tav_(0.01f)` dead — it is the one default that did match the
 reference, and it never survives `Init()`. `DERIVED` from the call graph.
+
+**(d) `SetLookahead(0)` gives the maximum delay, not none.** `DERIVED` by tracing
+`Process()`. The read index is `(write_ptr_ + MaxDelay - lookahead_) % MaxDelay`
+(`compressor_expander.h:107`), and the input is written to `delay_buffer_[write_ptr_]`
+*after* that read (`:111`). At `lookahead_ == 0` the read index is therefore `write_ptr_`
+itself, which still holds the sample from `MaxDelay` calls ago — so the natural
+"no lookahead" setting is the **longest** delay the buffer can express, and the first
+`MaxDelay` outputs are the zeroed buffer. `SetLookahead()` accepts zero without comment
+(`:161-163`) and the header documents no positive-only precondition, so this is reachable
+from the public API at its most obvious boundary value. `PROPOSED`: bypass the delay line
+when `lookahead_ == 0`, or read at `(write_ptr_ + MaxDelay - lookahead_ - 1) % MaxDelay`
+so that zero means the current sample — and either way document the supported range.
+Found by the Codex review on PR #9.
 
 ### 2.11 Undocumented real-time deviations in `Tube`
 
@@ -860,7 +893,7 @@ The book's coefficients are unreachable through the public API: `a1_` is a dead 
 no setter. `PROPOSED`: expose `b0/b1/a1`, or map `damping` onto a real one-pole whose
 response is monotonic in the parameter, and correct both comments.
 
-### 2.20 `CrossCorrelation::ComputeNormalized` is biased toward small lags
+### 2.20 `CrossCorrelation` — a small-lag bias, and an unbounded lag range that reads out of bounds
 
 `src/utility/xcorr.h:71-93`. This module was counted defective in the tally on the grounds
 that its normalisation differs from `xcorr_norm.m` — which §4.2 of this same document then
@@ -892,6 +925,27 @@ so a lag search using this function is biased toward short lags. That matters pr
 because the header cites SOLA as its purpose, and a SOLA lag search is what it would be
 used for. `PROPOSED`: accumulate `energy_x` over the same `overlap` window as the
 numerator.
+
+**A second, unrelated defect in the same file is memory safety, and it outranks the
+bias.** `VERIFIED` under ASan. Both `Compute()` and `ComputeNormalized()` evaluate
+`size_t overlap = length - lag` unconditionally (`xcorr.h:50, 83`). `max_lag` is a public
+parameter with no documented upper bound, so any `max_lag >= length + 2` drives `lag` past
+`length` and the subtraction underflows to a value near 2⁶⁴; the inner loop then walks off
+the end of both inputs:
+
+```
+CrossCorrelation::Compute(x, y, /*length=*/4, out, /*max_lag=*/6);
+
+AddressSanitizer: stack-buffer-overflow, READ of size 4
+  #0 CrossCorrelation::Compute(...)  xcorr.h:52
+```
+
+`lag == length` is safe — the overlap is zero and the loop does not run — so the boundary
+is exactly `max_lag >= length + 2`. Moving the `energy_x` loop as proposed above leaves
+this untouched, and it belongs in the memory-safety block of the work order rather than
+with the correctness items. `PROPOSED`: compute the overlap as
+`(lag < length) ? length - lag : 0`, which makes non-overlapping lags correlate to zero —
+the right answer as well as a defined one. Found by the Codex review on PR #9.
 
 ### 2.21 Both combs read an uninitialised `delay_frac_` on a documented path
 
@@ -1145,7 +1199,7 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    `Init(0)` is accepted by both and the next `Write()` is fatal — a division by zero in the
    fixed-size class, and in the dynamic class an out-of-bounds heap write that lands
    *before* the modulo, so guarding only the modulo does not fix it. The `Read()` domain
-   clamp is item 19; this step is the memory safety alone.
+   clamp is item 20; this step is the memory safety alone.
 4. `CrosstalkCanceller` — five defects, in this order (2.9). First bound `HRIR_LENGTH`:
    above 256 the module reads past `left_time` on the first block, because `FFT_SIZE` is
    hard-coded to 512 independently of the template parameter. Either derive `FFT_SIZE` from
@@ -1160,61 +1214,72 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    its own head, and last the missing `fftshift`, which cannot be assessed until the rest
    holds.
 
+5. `CrossCorrelation` — bound the lag range (2.20). `Compute()` and
+   `ComputeNormalized()` both evaluate `length - lag` unconditionally, so any
+   `max_lag >= length + 2` underflows `size_t` and the inner loop walks off the end of both
+   inputs. Computing the overlap as `(lag < length) ? length - lag : 0` fixes it and makes
+   non-overlapping lags correlate to zero. The normalisation bias in the same file is a
+   separate, later item.
+
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
-5. `HighShelving:43` — the cut coefficient (2.4).
-6. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
-7. `PhaseVocoder` — all three defects in 2.13, validated together on hop, phase and
+6. `HighShelving:43` — the cut coefficient (2.4).
+7. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
+8. `PhaseVocoder` — all three defects in 2.13, validated together on hop, phase and
    resampling. `:256` (`tstretch = pitch_ratio_`) is one line and makes every upward ratio
    exact, but on its own it leaves the `grain_length_` clamp disabling the resampler for
    every ratio below 1, and leaves each grain's first hop emitted twice (±0.7 dB AM at
    `fs/H`). The one-line fix is where to start, not the whole repair.
-8. `SpectralFilter` — the default template argument cannot be instantiated (2.12), then
+9. `SpectralFilter` — the default template argument cannot be instantiated (2.12), then
    the two runtime defects in 2.13: the overlap-add stages and zeroes the tail before the
    block that should add it, giving a click at every block boundary, and `SetBandpass()`
    uses `exp(+damping·n)` where the reference has a negative alpha, so the impulse response
    grows instead of decaying. A compiling filter is not a working one. (An earlier revision
    said nothing else in the file could be tested until the size was fixed; that was wrong —
    both runtime defects were measured here at a power-of-two `FIR_LENGTH` of 1024.)
-9. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
+10. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
    precision while there. Cheap, and it removes a 2π trap from the one function every
    spectral effect depends on.
 
 **Then the modules that are non-functional as shipped:**
 
-10. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
+11. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
    makes it worse. Then the two-pole envelope detector (2.1d), without which the timing
    still will not match the reference.
-11. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
-12. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
+12. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
+13. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
-13. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13),
+14. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13),
    then the overlap-add gain neither of them normalises. The spectral cores are already
    exact — `Robotization` cross-correlates 1.0000 against the reference at hop = N — so
    buffering and gain are all that stand between them and a correct port.
-14. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
-15. `SOLATimeStretch` — rewrite (2.16).
-16. `Tube` — guard `SetDistortion()` against 0, which makes `1/dist_` and every
+15. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
+16. `SOLATimeStretch` — rewrite (2.16).
+17. `Tube` — guard `SetDistortion()` against 0, which makes `1/dist_` and every
     `1-exp(...)` term divide by zero and latches NaN into the HP/LP filter state for the
     rest of the run; and document the three dropped whole-signal normalisations (2.11).
-17. `YIN` — rotate the streaming analysis frame by `input_pos_` (2.17), with streaming
+18. `YIN` — rotate the streaming analysis frame by `input_pos_` (2.17), with streaming
     regression coverage. Block mode is correct and usable today; `ProcessSample()` loses
     73 of 187 frames on a clean tone, so the public streaming path is unusable until this
     is fixed.
-18. `StereoPan` — either implement the tangent law so `speaker_angle_` reaches the output,
+19. `StereoPan` — either implement the tangent law so `speaker_angle_` reaches the output,
     or remove `SetSpeakerAngle()` and correct the header's "tangent law" claim (2.8). A
     public setter that silently does nothing is the worst of the three options.
-19. `CircularBuffer` **and `DynamicCircularBuffer`** — clamp and document the valid delay
-    domain in both (2.6).
-20. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
+20. `CircularBuffer` **and `DynamicCircularBuffer`** — clamp and document the valid delay
+    domain in both (2.6), and settle `ReadCubic()` in the same pass: its Hermite stencil
+    reads `Read(delay_int - 1)`, so every delay in `[1, 2)` still lands on the broken
+    `Read(0)` tap however tightly the caller-facing argument is clamped. Either repair
+    `Read(0)` to mean the newest sample or raise `ReadCubic`'s own clamp to `2.0f`.
+21. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
     the numerator (2.20); one loop moved, and it un-biases any lag search built on it.
-21. `CompressorExpander` — convert the reference's coefficients to time constants
+22. `CompressorExpander` — convert the reference's coefficients to time constants
     properly (2.10a), un-invert the expansion curve and drop the ≥ 1 slope clamp that
-    forbids the working values (2.10b), and stop `RecalculateCoefficients()` clobbering
-    `tav_` (2.10c).
-22. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
+    forbids the working values (2.10b), stop `RecalculateCoefficients()` clobbering
+    `tav_` (2.10c), and fix the `SetLookahead(0)` boundary (2.10d), where the natural
+    no-lookahead setting currently yields the *longest* delay the buffer can express.
+23. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
     and correct the two comments that misdescribe it (2.19).
-23. `FDNReverb` — make the reference configuration reachable: damping off by default or
+24. `FDNReverb` — make the reference configuration reachable: damping off by default or
     documented, and a gain structure that can express `dry + wet` at unity (§3). Then the
     delay allocation from 4.3: **distinct** primes rather than truncated scaling, honouring
     the `MaxDelay` clamp. At 48 kHz the shipped lengths are 162, 229, 286, 318 — three even
@@ -1222,11 +1287,11 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 **Then the process problems, which are what let all of the above ship:**
 
-24. Restore the nine excluded test files to the build (1a) and fix what turns red.
-25. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+25. Restore the nine excluded test files to the build (1a) and fix what turns red.
+26. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-26. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+27. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
