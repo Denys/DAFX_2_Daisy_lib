@@ -31,13 +31,29 @@
 namespace daisysp {
 class Vibrato {
 public:
-  /** Largest width the documented parameter range admits, in seconds.
-   *  Init() allocates for this so that SetWidth() never has to reallocate:
-   *  the setter is callable from the audio thread, and the delay line must
-   *  already be large enough for any width the header promises to accept.
-   *  Cost at 48 kHz is 2 + 4800 + 2*4800 = 14402 floats (~57.6 kB); at
-   *  96 kHz, ~115 kB. */
+  /** Largest width this class will accept, in seconds - the top of the range
+   *  the header documents. It is an upper bound on what Init() may be asked
+   *  to reserve, not what it reserves by default. */
   static constexpr float kMaxWidthSeconds = 0.1f;
+
+  /** Width reserved by Init() when the caller does not ask for more.
+   *
+   *  The delay line is sized once, at Init(), because SetWidth() is callable
+   *  from the audio thread and must never reallocate. That makes the reserved
+   *  width a memory decision rather than a tuning one, so the caller makes it.
+   *
+   *  The structure this port uses costs `2 + 3 * width * fs` floats, so
+   *  reserving the full kMaxWidthSeconds would take 14402 floats (~57.6 kB)
+   *  at 48 kHz and ~115 kB at 96 kHz - past the "< 50 KB" per-effect target
+   *  in README.md, at both of the rates that README supports.
+   *
+   *  The default reserves 20 ms: 2882 floats (~11.3 kB) at 48 kHz and 5762
+   *  floats (~22.5 kB) at 96 kHz, both inside that target. It covers the
+   *  ordinary vibrato and chorus range, including the 10 ms that
+   *  tests/test_vibrato.cpp exercises. Pass a larger value to Init() for
+   *  wider settings; SetWidth() clamps to whatever was reserved, and
+   *  GetWidth() reports the clamped value. */
+  static constexpr float kDefaultReservedWidthSeconds = 0.02f;
 
   /** Highest sample rate Init() will honour. Above this the delay-line length
    *  computed from kMaxWidthSeconds overflows the int it is held in - the
@@ -47,7 +63,8 @@ public:
   static constexpr float kMaxSampleRate = 768000.0f;
 
   Vibrato()
-      : sample_rate_(48000.0f), freq_(5.0f), width_(0.005f), delay_samples_(0),
+      : sample_rate_(48000.0f), freq_(5.0f), width_(0.005f),
+        reserved_width_(kDefaultReservedWidthSeconds), delay_samples_(0),
         width_samples_(0), mod_freq_samples_(0.0f), delay_line_size_(2),
         delay_line_capacity_(0), delay_line_(nullptr), write_ptr_(0) {}
 
@@ -63,7 +80,8 @@ public:
 
   Vibrato(Vibrato &&other) noexcept
       : sample_rate_(other.sample_rate_), freq_(other.freq_),
-        width_(other.width_), delay_samples_(other.delay_samples_),
+        width_(other.width_), reserved_width_(other.reserved_width_),
+        delay_samples_(other.delay_samples_),
         width_samples_(other.width_samples_),
         mod_freq_samples_(other.mod_freq_samples_),
         delay_line_size_(other.delay_line_size_),
@@ -79,6 +97,7 @@ public:
       sample_rate_ = other.sample_rate_;
       freq_ = other.freq_;
       width_ = other.width_;
+      reserved_width_ = other.reserved_width_;
       delay_samples_ = other.delay_samples_;
       width_samples_ = other.width_samples_;
       mod_freq_samples_ = other.mod_freq_samples_;
@@ -92,7 +111,16 @@ public:
     return *this;
   }
 
-  void Init(float sample_rate);
+  /** @param sample_rate  Sample rate in Hz, clamped to kMaxSampleRate.
+   *  @param max_width_seconds  Width to reserve the delay line for, clamped
+   *         to [0, kMaxWidthSeconds]. SetWidth() is limited to this value.
+   *  Re-initialising is safe: the previous allocation is released, and a
+   *  failed allocation leaves the object exactly as it was. */
+  void Init(float sample_rate,
+            float max_width_seconds = kDefaultReservedWidthSeconds);
+
+  /** Width the delay line was sized for, in seconds. */
+  inline float GetReservedWidth() const { return reserved_width_; }
 
   float Process(const float &in);
 
@@ -101,7 +129,7 @@ public:
     RecalculateCoefficients();
   }
 
-  /** Width in seconds. Values outside [0, kMaxWidthSeconds] are clamped, so
+  /** Width in seconds. Values outside [0, GetReservedWidth()] are clamped, so
    *  the delay line allocated by Init() always covers the resulting size.
    *  GetWidth() reports the clamped value. */
   inline void SetWidth(const float &width) {
@@ -116,6 +144,7 @@ private:
   float sample_rate_;
   float freq_;
   float width_;
+  float reserved_width_; // what Init() sized the delay line for
 
   int delay_samples_;
   int width_samples_;

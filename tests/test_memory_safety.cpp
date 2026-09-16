@@ -157,29 +157,77 @@ TEST(MemorySafetyBuffers, DynamicBufferMoveTransfersOwnership) {
 // uninitialised delay_line_, the absent rule of three, and the Init() leak.
 // ---------------------------------------------------------------------------
 
-TEST(MemorySafetyVibrato, WidestDocumentedWidthDoesNotOverflow) {
+TEST(MemorySafetyVibrato, WidestReservedWidthDoesNotOverflow) {
   // vibrato.h documents 0.0001-0.1 s. Before the fix, any width larger than
   // the one in effect at Init() grew the logical delay length past the
   // allocation and Process() ran off the end of the heap block.
   Vibrato v;
-  v.Init(48000.0f);
-  v.SetWidth(0.1f);
+  v.Init(48000.0f, Vibrato::kMaxWidthSeconds); // reserve the whole range
+  v.SetWidth(Vibrato::kMaxWidthSeconds);
+  EXPECT_FLOAT_EQ(v.GetWidth(), Vibrato::kMaxWidthSeconds);
   for (int i = 0; i < 8192; ++i) {
     float out = v.Process(0.5f * std::sin(0.01f * static_cast<float>(i)));
     ASSERT_TRUE(std::isfinite(out)) << "non-finite output at sample " << i;
   }
 }
 
-TEST(MemorySafetyVibrato, WidthIsClampedToTheAllocatedRange) {
+TEST(MemorySafetyVibrato, WidthIsClampedToWhatInitReserved) {
+  // The delay line is sized once, at Init(), because SetWidth() must not
+  // reallocate on the audio thread. A width beyond the reservation is
+  // therefore clamped rather than honoured, and GetWidth() says so.
   Vibrato v;
-  v.Init(48000.0f);
+  v.Init(48000.0f); // default reservation
+  EXPECT_FLOAT_EQ(v.GetReservedWidth(), Vibrato::kDefaultReservedWidthSeconds);
+
   v.SetWidth(10.0f); // far outside the documented range
-  EXPECT_FLOAT_EQ(v.GetWidth(), Vibrato::kMaxWidthSeconds);
+  EXPECT_FLOAT_EQ(v.GetWidth(), Vibrato::kDefaultReservedWidthSeconds);
   EXPECT_TRUE(std::isfinite(v.Process(0.5f)));
 
   v.SetWidth(-1.0f);
   EXPECT_FLOAT_EQ(v.GetWidth(), 0.0f);
   EXPECT_TRUE(std::isfinite(v.Process(0.5f)));
+
+  // A caller who needs the full range asks for it, and then gets it.
+  Vibrato wide;
+  wide.Init(48000.0f, Vibrato::kMaxWidthSeconds);
+  wide.SetWidth(0.05f);
+  EXPECT_FLOAT_EQ(wide.GetWidth(), 0.05f);
+  EXPECT_TRUE(std::isfinite(wide.Process(0.5f)));
+}
+
+TEST(MemorySafetyVibrato, ReservationIsClampedAndDefaultsSmall) {
+  // README.md sets a "< 50 KB" per-effect RAM target and supports rates up
+  // to 96 kHz. The delay line costs 2 + 3 * width * fs floats, so assert the
+  // budget itself rather than a magic width: reserving the full 0.1 s would
+  // be ~115 kB at 96 kHz and blow it.
+  constexpr double kBudgetBytes = 50.0 * 1024.0;
+  constexpr double kHighestSupportedRate = 96000.0;
+  const double reserved_bytes =
+      (2.0 + 3.0 * Vibrato::kDefaultReservedWidthSeconds *
+                 kHighestSupportedRate) *
+      sizeof(float);
+  EXPECT_LT(reserved_bytes, kBudgetBytes)
+      << "default reservation is " << reserved_bytes << " bytes at "
+      << kHighestSupportedRate << " Hz";
+  // It must still cover the widths the existing suite uses.
+  EXPECT_GE(Vibrato::kDefaultReservedWidthSeconds, 0.01f);
+
+  for (float request : {1.0f, 1.0e9f, std::nanf(""),
+                        std::numeric_limits<float>::infinity()}) {
+    Vibrato v;
+    v.Init(48000.0f, request);
+    EXPECT_LE(v.GetReservedWidth(), Vibrato::kMaxWidthSeconds)
+        << "request " << request;
+    EXPECT_GE(v.GetReservedWidth(), 0.0f) << "request " << request;
+    for (int i = 0; i < 512; ++i) {
+      ASSERT_TRUE(std::isfinite(v.Process(0.5f))) << "request " << request;
+    }
+  }
+
+  Vibrato negative;
+  negative.Init(48000.0f, -1.0f);
+  EXPECT_FLOAT_EQ(negative.GetReservedWidth(), 0.0f);
+  EXPECT_TRUE(std::isfinite(negative.Process(0.5f)));
 }
 
 TEST(MemorySafetyVibrato, ProcessBeforeInitIsSafe) {
@@ -436,7 +484,7 @@ TEST(MemorySafetyNonFinite, VibratoBoundsAnAbsurdSampleRate) {
                          std::numeric_limits<float>::max()};
   for (float rate : rates) {
     Vibrato v;
-    v.Init(rate);
+    v.Init(rate, Vibrato::kMaxWidthSeconds);
     v.SetWidth(Vibrato::kMaxWidthSeconds);
     for (int i = 0; i < 1024; ++i) {
       ASSERT_TRUE(std::isfinite(v.Process(0.5f)))

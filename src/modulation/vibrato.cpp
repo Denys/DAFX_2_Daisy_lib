@@ -6,40 +6,50 @@
 #endif
 
 namespace daisysp {
-void Vibrato::Init(float sample_rate) {
-  // A non-positive or non-finite rate makes mod_freq_samples_ infinite, and
-  // the modulator then feeds a NaN into the integer tap index. Keep the
-  // previous rate instead of arming that path. An absurdly high rate is a
-  // different fault of the same kind: the delay length below is held in an
-  // int, and converting 0.1 * 1e12 to one is undefined before it overflows.
+void Vibrato::Init(float sample_rate, float max_width_seconds) {
+  // Nothing is committed to the object until the allocation has succeeded.
+  // Assigning sample_rate_ first and then throwing would leave the new rate
+  // installed against the old, smaller buffer; RecalculateCoefficients()
+  // would then derive tap offsets from the new rate while clamping the
+  // length to the old capacity, and Process() would index outside it.
+  float rate = sample_rate_;
   if (std::isfinite(sample_rate) && sample_rate > 0.0f) {
-    sample_rate_ =
-        (sample_rate > kMaxSampleRate) ? kMaxSampleRate : sample_rate;
+    // An absurdly high rate is undefined before it is merely absurd: the
+    // delay length is held in an int, and converting 0.1 * 1e12 to one is
+    // outside its range.
+    rate = (sample_rate > kMaxSampleRate) ? kMaxSampleRate : sample_rate;
   }
-  freq_ = 5.0f;
-  width_ = 0.005f;
-  write_ptr_ = 0;
 
-  // Size the allocation for the widest width the header documents, not for
-  // the width in effect right now. SetWidth() may be called at any time,
-  // including from the audio thread, and must not have to reallocate.
-  const int max_delay = static_cast<int>(kMaxWidthSeconds * sample_rate_ + 0.5f);
+  float reserve = max_width_seconds;
+  if (!(reserve >= 0.0f)) { // also catches NaN
+    reserve = 0.0f;
+  }
+  if (reserve > kMaxWidthSeconds) {
+    reserve = kMaxWidthSeconds;
+  }
+
+  // Size the allocation once, for the width the caller reserved. SetWidth()
+  // may be called at any time, including from the audio thread, and must not
+  // have to reallocate - so the reserved width, not the current one, decides
+  // the footprint.
+  const int max_delay = static_cast<int>(reserve * rate + 0.5f);
   const int capacity = 2 + max_delay + max_delay * 2;
 
-  // Release any previous allocation. Init() may legitimately be called more
-  // than once - to change sample rate, for instance - and overwriting the
-  // pointer would abandon the earlier buffer.
-  //
   // Allocate before freeing. Deleting first would leave delay_line_ dangling
-  // if the new[] threw, and the destructor would then free it a second time;
-  // on a memory-constrained target that is the likely case, not the exotic
-  // one. This order leaves the object untouched when the allocation fails.
+  // if the new[] threw, and the destructor would then free it a second time.
   if (delay_line_capacity_ != capacity) {
     float *replacement = new float[capacity];
     delete[] delay_line_;
     delay_line_ = replacement;
     delay_line_capacity_ = capacity;
   }
+
+  // Past this point nothing can throw, so the state can be committed.
+  sample_rate_ = rate;
+  reserved_width_ = reserve;
+  freq_ = 5.0f;
+  width_ = (0.005f > reserve) ? reserve : 0.005f;
+  write_ptr_ = 0;
   std::memset(delay_line_, 0, delay_line_capacity_ * sizeof(float));
 
   RecalculateCoefficients();
@@ -53,8 +63,8 @@ void Vibrato::RecalculateCoefficients() {
   if (!(width_ >= 0.0f)) { // also catches NaN
     width_ = 0.0f;
   }
-  if (width_ > kMaxWidthSeconds) {
-    width_ = kMaxWidthSeconds;
+  if (width_ > reserved_width_) {
+    width_ = reserved_width_;
   }
 
   // Calculate delay in samples
@@ -111,6 +121,18 @@ float Vibrato::Process(const float &in) {
   // Calculate integer and fractional parts
   int i = static_cast<int>(std::floor(tap));
   float frac = tap - i;
+
+  // Backstop on the index itself. The clamps above keep the tap inside the
+  // delay line for every state this class can reach, but a negative or
+  // oversized i would make the remainder below negative and index outside the
+  // allocation - so bound it here rather than rely on that reasoning holding
+  // for every future change.
+  if (i < 0) {
+    i = 0;
+  }
+  if (i >= delay_line_size_) {
+    i = delay_line_size_ - 1;
+  }
 
   // Handle circular buffer wrap
   int read_ptr = (write_ptr_ - i + delay_line_size_) % delay_line_size_;
