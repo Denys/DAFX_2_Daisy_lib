@@ -53,9 +53,17 @@ namespace daisysp {
  */
 template <size_t MaxDelay = 2048> class UniversalComb {
 public:
+  static_assert(MaxDelay >= 2, "MaxDelay must leave room for a delay tap");
+
+  // The nominal default is 10 samples, but a small instantiation cannot hold
+  // it. An out-of-range default made ProcessFractional() compute a negative
+  // read position and cast it to size_t, which is undefined.
+  static constexpr size_t kDefaultDelay = (MaxDelay > 10) ? 10 : MaxDelay - 1;
+
   UniversalComb()
-      : sample_rate_(48000.0f), delay_samples_(10), delay_frac_(10.0f),
-        feedback_(0.0f), feedforward_(1.0f), blend_(0.5f), write_ptr_(0) {}
+      : sample_rate_(48000.0f), delay_samples_(kDefaultDelay),
+        delay_frac_(static_cast<float>(kDefaultDelay)), feedback_(0.0f),
+        feedforward_(1.0f), blend_(0.5f), write_ptr_(0) {}
 
   /**
    * @brief Initialize the comb filter
@@ -65,10 +73,10 @@ public:
   void Init(float sample_rate) {
     sample_rate_ = sample_rate;
 
-    // Keep the fractional delay in step with the integer one. Without this,
-    // ProcessFractional() reads an indeterminate delay_frac_ and its NaN
-    // result is cast to size_t to index the buffer.
-    delay_frac_ = static_cast<float>(delay_samples_);
+    // delay_frac_ is deliberately not touched here. The constructor
+    // initialises it, so Init() does not need to, and assigning
+    // static_cast<float>(delay_samples_) would silently truncate a delay
+    // configured through SetDelayFractional() or SetDelayMs().
 
     // Clear delay buffer
     std::memset(delay_buffer_, 0, sizeof(delay_buffer_));
@@ -115,10 +123,12 @@ public:
       read_pos -= static_cast<float>(MaxDelay);
     }
 
-    // A non-finite read_pos casts to 2^63 and indexes outside the buffer. The
-    // setters below reject the non-finite inputs that are known to reach here;
-    // this covers the ones that are not.
-    if (!std::isfinite(read_pos)) {
+    // The cast below is undefined unless read_pos is in [0, MaxDelay). NaN
+    // fails this test, and so does a negative value - which is finite, so a
+    // finiteness check alone let it through to a cast of -6 on a small
+    // MaxDelay. The setters reject the bad inputs that are known to reach
+    // here; this covers the ones that are not.
+    if (!(read_pos >= 0.0f && read_pos < static_cast<float>(MaxDelay))) {
       read_pos = 0.0f;
     }
 
@@ -152,12 +162,16 @@ public:
 
   inline void SetDelayMs(float ms) {
     float samples = ms * sample_rate_ / 1000.0f;
+    // Clamp before the cast, not after: converting NaN, an infinity or a
+    // negative to size_t is undefined, and no later clamp can undo that.
+    if (!std::isfinite(samples) || samples < 0.0f) {
+      samples = 0.0f;
+    }
+    if (samples > static_cast<float>(MaxDelay - 1)) {
+      samples = static_cast<float>(MaxDelay - 1);
+    }
     delay_frac_ = samples;
     delay_samples_ = static_cast<size_t>(samples);
-    if (delay_samples_ > MaxDelay - 1) {
-      delay_samples_ = MaxDelay - 1;
-      delay_frac_ = static_cast<float>(MaxDelay - 1);
-    }
   }
 
   inline void SetDelayFractional(float samples) {
@@ -229,7 +243,10 @@ private:
   float feedforward_;
   float blend_;
 
-  float delay_buffer_[MaxDelay];
+  // Zero-initialised so that a default-constructed instance can be
+  // processed without first calling Init(); reading it otherwise is
+  // undefined, whatever the index arithmetic does.
+  float delay_buffer_[MaxDelay] = {};
   size_t write_ptr_;
 };
 

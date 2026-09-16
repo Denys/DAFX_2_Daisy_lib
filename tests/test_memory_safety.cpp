@@ -15,6 +15,7 @@
 
 #include <cmath>
 #include <gtest/gtest.h>
+#include <limits>
 #include <type_traits>
 
 using namespace daisysp;
@@ -299,5 +300,97 @@ TEST(MemorySafetyNonFinite, CombsSurviveNonFiniteDelayInMilliseconds) {
   lp.SetDelayMs(std::nanf(""));
   for (int i = 0; i < 256; ++i) {
     ASSERT_TRUE(std::isfinite(lp.ProcessFractional(0.5f))) << "at " << i;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Second review round on this PR. Four findings, each reproduced before being
+// fixed; three of them were faults introduced or left open by the first round
+// of fixes rather than by the original code.
+// ---------------------------------------------------------------------------
+
+// Init() used to assign delay_frac_ = delay_samples_, which truncated a delay
+// configured through SetDelayFractional(). The constructor already removes the
+// indeterminacy that assignment was added for.
+TEST(MemorySafetyCombs, InitPreservesAConfiguredFractionalDelay) {
+  UniversalComb<2048> comb;
+  comb.Init(48000.0f);
+  comb.SetDelayFractional(64.75f);
+  ASSERT_FLOAT_EQ(comb.GetDelayFractional(), 64.75f);
+
+  comb.Init(48000.0f); // reset state, change nothing configured
+  EXPECT_FLOAT_EQ(comb.GetDelayFractional(), 64.75f);
+}
+
+TEST(MemorySafetyCombs, InitPreservesADelaySetInMilliseconds) {
+  LPIIRComb<4096> comb;
+  comb.Init(48000.0f);
+  comb.SetDelayMs(1.5f); // 72 samples at 48 kHz
+  const size_t configured = comb.GetDelay();
+  ASSERT_EQ(configured, 72u);
+
+  comb.Init(48000.0f);
+  EXPECT_EQ(comb.GetDelay(), configured);
+}
+
+// The nominal default delay (10 for UniversalComb, 100 for LPIIRComb) does not
+// fit a small instantiation. ProcessFractional() then computed a negative read
+// position, which is finite - so the finiteness guard accepted it - and casting
+// it to size_t is undefined before an out-of-bounds read:
+//   universal_comb.h: runtime error: -6 is outside the range of
+//       representable values of type 'long unsigned int'
+TEST(MemorySafetyCombs, SmallUniversalCombClampsItsDefaultDelay) {
+  UniversalComb<4> comb;
+  comb.Init(48000.0f);
+  EXPECT_LE(comb.GetDelay(), 3u);
+  EXPECT_LE(comb.GetDelayFractional(), 3.0f);
+  for (int i = 0; i < 64; ++i) {
+    ASSERT_TRUE(std::isfinite(comb.ProcessFractional(0.5f))) << "at " << i;
+  }
+}
+
+TEST(MemorySafetyCombs, SmallLPIIRCombClampsItsDefaultDelay) {
+  LPIIRComb<8> comb;
+  comb.Init(48000.0f);
+  EXPECT_LE(comb.GetDelay(), 7u);
+  for (int i = 0; i < 64; ++i) {
+    ASSERT_TRUE(std::isfinite(comb.ProcessFractional(0.5f))) << "at " << i;
+  }
+}
+
+// SetDelayMs() converted to size_t before validating. Casting NaN, an infinity
+// or a negative is undefined in the setter itself, which no guard in
+// ProcessFractional() can repair. Run this under -fsanitize=float-cast-overflow.
+TEST(MemorySafetyNonFinite, SetDelayMsValidatesBeforeConverting) {
+  const float bad[] = {std::nanf(""), -1.0f, -0.0f / 0.0f,
+                       std::numeric_limits<float>::infinity(),
+                       -std::numeric_limits<float>::infinity(), 1.0e9f};
+  for (float ms : bad) {
+    UniversalComb<2048> uc;
+    uc.Init(48000.0f);
+    uc.SetDelayMs(ms);
+    EXPECT_LT(uc.GetDelay(), 2048u);
+    EXPECT_TRUE(std::isfinite(uc.GetDelayFractional()));
+    EXPECT_TRUE(std::isfinite(uc.ProcessFractional(0.5f)));
+
+    LPIIRComb<4096> lp;
+    lp.Init(48000.0f);
+    lp.SetDelayMs(ms);
+    EXPECT_LT(lp.GetDelay(), 4096u);
+    EXPECT_TRUE(std::isfinite(lp.ProcessFractional(0.5f)));
+  }
+}
+
+// The delay buffers were left indeterminate by the constructors, so the
+// default-construction tests above asserted a safety the code did not provide:
+// ProcessFractional() read uninitialised floats whatever the index did.
+TEST(MemorySafetyCombs, DefaultConstructedCombsHaveAZeroedDelayLine) {
+  UniversalComb<64> uc; // no Init()
+  for (int i = 0; i < 256; ++i) {
+    ASSERT_TRUE(std::isfinite(uc.ProcessFractional(0.0f))) << "at " << i;
+  }
+  LPIIRComb<128> lp; // no Init()
+  for (int i = 0; i < 256; ++i) {
+    ASSERT_TRUE(std::isfinite(lp.ProcessFractional(0.0f))) << "at " << i;
   }
 }
