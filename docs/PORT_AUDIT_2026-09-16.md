@@ -140,11 +140,26 @@ The in-file comment calls it "first-order lowpass", so the simplification is dis
 but it changes the envelope's attack curvature, and therefore *when* the threshold is
 crossed and when the hold window starts, for any transient or level-varying input.
 
-Fixing (a) alone makes the module worse than it is today; fixing (a)–(c) makes it a
-working gate but not this reference's gate. An earlier revision said "all three must be
-fixed together" and stopped there, implying that was the complete repair. It is not — the
-detector topology is a fourth difference and belongs in the plan. Found by the Codex
-review on PR #9. `PROPOSED`
+**(e) Two whole-signal normalisations have no streaming equivalent.** `DERIVED`
+
+`noisegt.m:30` is `h = h/max(h)` — the envelope is divided by its own peak over the
+**entire input**, so both thresholds are relative to the complete signal, not absolute.
+Line 66 then rescales the output: `y = y*max(abs(x))/max(abs(y))`. Neither is realisable
+per sample, and the C++ does neither; it compares an absolute linear threshold instead.
+That is the correct real-time adaptation, but it means threshold crossings and output gain
+differ from the reference for any input whose detected peak is not already unity, and the
+header does not say so.
+
+Fixing (a) alone makes the module worse than it is today. Fixing (a)–(c) makes it a
+working gate. Fixing (d) as well makes its timing match the reference's. (e) cannot be
+fixed in a streaming port at all and should instead be documented as a deliberate
+deviation.
+
+Two earlier revisions of this section each closed with a completeness claim — first "all
+three must be fixed together", then "the detector topology is a fourth difference" — and
+each was wrong in the same way: a sequencing statement doing duty as an exhaustiveness
+statement. Both were found by the Codex review on PR #9. The list above is what the
+comparison supports; it is not asserted to be exhaustive. `PROPOSED`
 
 ### 2.2 `WahWah` — no sweep, and the poles sit on the unit circle
 
@@ -712,6 +727,37 @@ because the header cites SOLA as its purpose, and a SOLA lag search is what it w
 used for. `PROPOSED`: accumulate `energy_x` over the same `overlap` window as the
 numerator.
 
+### 2.21 Both combs read an uninitialised `delay_frac_` on a documented path
+
+`src/effects/lp_iir_comb.h:203` and `src/effects/universal_comb.h:210`. In **both** classes
+`delay_frac_` is declared as a member, appears in neither the constructor's initialiser
+list nor `Init()`, and is assigned only inside `SetDelay()` / `SetDelayFractional()`. The
+documented sequence `Init(fs)` followed by `ProcessFractional(x)` — with no `SetDelay*`
+call, which nothing requires — therefore reads indeterminate memory at
+`lp_iir_comb.h:116` and `universal_comb.h:113`.
+
+`VERIFIED` for `LPIIRComb` by constructing the object over storage pre-set to `0xFF` (a
+realistic pattern for uninitialised memory, and `0xFFFFFFFF` reads as NaN):
+
+```
+Init(48000) then ProcessFractional(1.0) -> -nan
+```
+
+The consequence is worse than a bad sample. `ProcessFractional` casts the value to
+`size_t` to index `delay_buffer_`; a NaN-to-integer conversion is undefined behaviour, and
+the `while` guard above it is skipped because every NaN comparison is false. So the index
+is unconstrained, and on a target with no MMU the read is silent.
+
+The review that found this named `LPIIRComb` only. `UniversalComb` carries the identical
+defect — same member, same two omissions, same public path — and is included here because
+the pattern, not the instance, is what needs fixing. `PROPOSED`: initialise `delay_frac_`
+in both constructors and both `Init()` bodies.
+
+Related but weaker, and recorded to keep the distinction: `FDNReverb`'s constructor leaves
+`delays_`, `feedback_matrix_`, `write_ptrs_` and `lp_state_` unset, but `Init()` does set
+them all, so only a caller who skips `Init()` — which the header documents as required —
+is affected, and `% MaxDelay` keeps the indices in range regardless.
+
 ---
 
 ## 3. Verified-correct modules
@@ -796,9 +842,11 @@ normalisations (2.11). Recording a caveat under the table while leaving the row 
 is not the same as counting it correctly, and it took an external reviewer to say so twice.
 
 The shape of the result matters more than the count: **the low-level layer is sounder than
-the wrappers around it.** Every FFT, window and matrix-algebra check passed, and the one
-low-level defect found (`princarg`, 2.18) is a single boundary value rather than a
-structural error. Almost every failure is in buffering, state management, or a parameter
+the wrappers around it.** Every FFT, window and matrix-algebra check passed. The layer is
+not clean, though: `princarg` (2.18) fails at one boundary value and
+`CrossCorrelation::ComputeNormalized` (2.20) carries a structural normalisation defect —
+an earlier revision called `princarg` "the one low-level defect", which contradicted both
+the table and 2.20. Almost every failure is in buffering, state management, or a parameter
 mapping — not in the DSP mathematics.
 
 ---
@@ -892,8 +940,13 @@ Mutually prime lengths are what keep the network's echo times from coinciding; o
 share factors the modal density collapses onto repeated delays and the tail acquires a
 metallic flutter. `SetDelayScale()` (`fdn_reverb.h:191`) has the same effect at arbitrary
 scale factors, and there the outcome is not predictable at all. `PROPOSED`: snap each
-scaled length to the nearest prime rather than truncating — which makes the property hold
-by construction instead of by arithmetic accident.
+scaled length to a **distinct** prime rather than truncating. Snapping each independently
+to its nearest prime is not enough: at small scale factors two targets can select the same
+one. `VERIFIED` — at 8 kHz with the public minimum `SetDelayScale(0.1)` the targets are
+2.70, 3.83, 4.77, 5.32, whose nearest primes are 3, 3, 5, 5; at 16 kHz with the same scale
+they are 5, 7, 11, 11. Coincident delays are worse than shared factors, since two lines
+then contribute identical echo times. The allocation must also respect the `MaxDelay`
+clamp at `fdn_reverb.h:271`.
 
 ### 4.4 A note on the reference itself
 
@@ -911,7 +964,10 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 1. `Vibrato` — the `SetWidth` heap overflow (2.15), then the LFO phase and the
    interpolation taps.
-2. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
+2. `LPIIRComb` and `UniversalComb` — initialise `delay_frac_` in both constructors and
+   both `Init()` bodies (2.21). Four lines, and it closes a NaN-to-`size_t` index on a
+   documented public path.
+3. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
    currently reach the FFT, so the module's output is nondeterministic and every other fix
    to it is unmeasurable until this is done. Then fix the overlap-add, which folds each
    transform's tail onto its own head and so reintroduces the circular convolution the
@@ -922,46 +978,46 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
-3. `HighShelving:43` — the cut coefficient (2.4).
-4. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
-5. `PhaseVocoder:256` — `tstretch = pitch_ratio_` (2.13); measured to make every upward
+4. `HighShelving:43` — the cut coefficient (2.4).
+5. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
+6. `PhaseVocoder:256` — `tstretch = pitch_ratio_` (2.13); measured to make every upward
    ratio exact.
-6. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
+7. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
    Nothing else in that file can be tested until this is resolved.
-7. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
+8. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
    precision while there. Cheap, and it removes a 2π trap from the one function every
    spectral effect depends on.
 
 **Then the modules that are non-functional as shipped:**
 
-8. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
+9. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
    makes it worse. Then the two-pole envelope detector (2.1d), without which the timing
    still will not match the reference.
-9. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
-10. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
+10. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
+11. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
-11. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
+12. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
    The spectral cores are already exact, so this is the only thing between them and a
    correct port.
-12. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
-13. `SOLATimeStretch` — rewrite (2.16).
-14. `CircularBuffer` — clamp and document the valid delay domain (2.6).
-15. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
+13. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
+14. `SOLATimeStretch` — rewrite (2.16).
+15. `CircularBuffer` — clamp and document the valid delay domain (2.6).
+16. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
     the numerator (2.20); one loop moved, and it un-biases any lag search built on it.
-16. `CompressorExpander` — convert the reference's coefficients to time constants
+17. `CompressorExpander` — convert the reference's coefficients to time constants
     properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
-17. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
+18. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
     and correct the two comments that misdescribe it (2.19).
-18. `FDNReverb` — make the reference configuration reachable: damping off by default
+19. `FDNReverb` — make the reference configuration reachable: damping off by default
     or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
 
 **Then the process problems, which are what let all of the above ship:**
 
-19. Restore the nine excluded test files to the build (1a) and fix what turns red.
-20. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+20. Restore the nine excluded test files to the build (1a) and fix what turns red.
+21. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-21. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+22. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
