@@ -264,7 +264,7 @@ Fix: `feedback_ = -g; feedforward_ = 1.0f; blend_ = g;` `PROPOSED`
 The `Process()` core itself is bit-exact against `unicomb.m` (max abs diff 0.0) — only
 the preset is wrong.
 
-### 2.6 `CircularBuffer::Read(0)` returns the oldest sample, not the newest
+### 2.6 Both buffer classes: an off-by-one delay tap, no ownership handling, and a fatal `Init(0)`
 
 `src/utility/circularbuffer.h:72-78`. `VERIFIED` with an 8-deep buffer holding 1…8
 (8 most recent):
@@ -302,8 +302,31 @@ Codex review on PR #9.
 This is the third class in this audit with the same shape — raw owning pointer, correct
 destructor, absent copy/move — after `Vibrato` (2.15). Both are public API.
 
+**`Init(0)` is accepted by both classes and makes the next `Write()` fatal.** `VERIFIED`
+under ASan/UBSan. Neither `Init()` documents or enforces a nonzero precondition, and the
+two classes then fail differently:
+
+```
+CircularBuffer<float,128>  cb; cb.Init(0); cb.Write(1.0f);
+  circularbuffer.h:64: runtime error: division by zero
+  AddressSanitizer: FPE  in CircularBuffer<float, 128ul>::Write(float)
+
+DynamicCircularBuffer<float> db; db.Init(0); db.Write(1.0f);
+  AddressSanitizer: heap-buffer-overflow, WRITE of size 4
+  in DynamicCircularBuffer<float>::Write(float) at circularbuffer.h:198
+```
+
+The difference matters for the fix. In the fixed-size class the modulo is the fault. In the
+dynamic class `Init(0)` first performs `new T[0]`, and `Write()` executes
+`buffer_[write_ptr_] = sample` **before** the modulo — so the out-of-bounds heap write
+happens first and a guard placed only on the modulo would not stop it. `Read()` is equally
+exposed in both: with `size_ == 0` the clamp computes `size_ - 1`, which wraps to
+`SIZE_MAX`. Found by the Codex review on PR #9.
+
 `PROPOSED`: clamp the lower bound to `1.0f` and document the domain — **in both classes** —
-and delete or implement `DynamicCircularBuffer`'s copy and move operations.
+delete or implement `DynamicCircularBuffer`'s copy and move operations, and reject or clamp
+a zero `size` in both `Init()` bodies rather than documenting a precondition callers cannot
+see.
 
 ### 2.7 `SimpleHRIR` — the ITD carries no left/right information
 
@@ -357,7 +380,7 @@ never used. Either wire it into a tangent-law implementation or remove it; leavi
 no-op control on the API is the worst of the three options. The header's claim of a
 "tangent law" should be corrected either way. `VERIFIED` by reading both sources.
 
-### 2.9 `CrosstalkCanceller` — the `fftshift` is omitted
+### 2.9 `CrosstalkCanceller` — five defects; the missing `fftshift` is the least of them
 
 `src/spatial/crosstalk_canceller.h:365-376` vs `M_files_chap05/crosstalkcanceler.m:33-34`.
 
@@ -422,6 +445,56 @@ filters — and therefore the cancellation — are nondeterministic run to run. 
 buffer, or have `Generate()` take and honour a capacity. `Generate()`'s own doc comment
 only promises `GetLength()` samples, so the caller is the party at fault — but the
 mismatch is invisible at the call site.
+
+**`FFT_SIZE` is too small for the filter the module itself computes**, so the circular
+convolution is not only a scheduling fault. `VERIFIED`. `FFT_SIZE` is fixed at 512 and the
+inverse is built bin by bin over all 512 bins (`crosstalk_canceller.h:46, 225-312`): the
+regularised inverse of a matrix of FIRs is in general infinite, so what the module holds is
+an arbitrary 512-sample impulse response, not a 256-tap one. Transforming `H_11` back to
+the time domain at the default 256-sample HRIR:
+
+```
+H_11 impulse response over 512 samples
+  energy [0,255]   = 8.747963e+00  (67.13%)
+  energy [256,511] = 4.282770e+00  (32.87%)
+  peak |h| overall = 2.238108e+00
+  peak |h| in tail = 2.291935e-01  (19.8 dB below peak)
+  last sample above -80 dB of peak: index 511
+```
+
+A third of the filter's energy lies beyond sample 255, with the tail peaking only 19.8 dB
+down. Convolving a 512-sample response with a 256-sample block needs 512 + 256 − 1 = 767
+samples, normally a 1024-point transform; the 512-point product has already wrapped output
+samples 512–766 onto 0–254 before the overlap buffers are read. Those buffers are
+`HRIR_LENGTH` = 256 long and so could not carry the full 511-sample tail even if their
+scheduling were right. **Repairing the overlap-add alone therefore does not remove the
+circular convolution**, which is how the previous paragraph's remedy was stated; the
+transform has to grow, or the convolution has to be partitioned, or the response has to be
+truncated to a documented length with the shift applied first. Found by the Codex review on
+PR #9.
+
+**With `HRIR_LENGTH > 256` the module reads off the end of the stack.** `VERIFIED` under
+ASan, and this one is memory safety rather than correctness. `HRIR_LENGTH` is a public
+template parameter with no documented upper bound and no `static_assert`, while
+`FFT_SIZE` is hard-coded to 512 independently of it (`crosstalk_canceller.h:46`).
+`ProcessBlock()` declares `float left_time[FFT_SIZE]` and then reads
+`left_time[i + HRIR_LENGTH]` for every `i < HRIR_LENGTH` (`:366, 371-376`), so any
+`HRIR_LENGTH` above 256 indexes past the array on the first completed block:
+
+```
+CrosstalkCanceller<512> ctc; ctc.Init(48000.0f);
+for (int n = 0; n < 512; ++n) ctc.Process(0.1f, -0.1f, &l, &r);
+
+AddressSanitizer: stack-buffer-overflow, READ of size 4
+  #0 CrosstalkCanceller<512ul>::ProcessBlock()  crosstalk_canceller.h:374
+  #1 CrosstalkCanceller<512ul>::Process(...)    crosstalk_canceller.h:138
+  'left_time' (line 366) <== Memory access at offset 15200 overflows this variable
+```
+
+Above 512 the `memcpy` of `HRIR_LENGTH` floats into the `FFT_SIZE`-sized `padded` and
+`left_padded` arrays (`:214, 333-334`) overflows as well. `PROPOSED`: derive `FFT_SIZE`
+from `HRIR_LENGTH` — which the paragraph above requires in any case — or, as a stopgap,
+`static_assert(HRIR_LENGTH <= 256)`. Found by the Codex review on PR #9.
 
 Note this module also consumes `SimpleHRIR`, so defect 2.7 compounds it as well: the
 canceller's default operating point is ±half the speaker angle, exactly the small-angle
@@ -614,7 +687,7 @@ family — but the cost is not uniform and the earlier table overstated three of
 Profile before quoting a figure. `PhaseVocoder` also holds roughly 150 KB per instance at
 N = 2048 and puts 8–16 KB frames on the callback stack.
 
-### 2.15 `Vibrato` — heap overflow reachable from the public API
+### 2.15 `Vibrato` — a heap overflow, three ownership defects and two correctness defects
 
 `src/modulation/vibrato.cpp:22-39`. `RecalculateCoefficients()` recomputes
 `delay_line_size_` on every `SetWidth()`/`SetFrequency()` call, but `delay_line_` is
@@ -648,6 +721,25 @@ Two further defects in the same file:
 
 `vibrato.h:34` also leaves `delay_line_` uninitialised in the constructor while the
 destructor tests it against `nullptr` and calls `delete[]`, and there is no rule of three.
+
+**A fourth ownership defect: `Init()` leaks whenever it is called more than once.**
+`VERIFIED` under LeakSanitizer. `vibrato.cpp:18` assigns `new float[delay_line_size_]`
+straight to `delay_line_` without freeing what was there, so every re-`Init` abandons the
+previous allocation. This is not a hypothetical path — `tests/test_vibrato.cpp:69-71`
+(`DifferentSampleRates`) calls `Init` three times on an already-initialised fixture:
+
+```
+Vibrato v; v.Init(48000); v.Init(44100); v.Init(96000);
+
+LeakSanitizer: detected memory leaks
+  Direct leak of 2888 byte(s) in 1 object(s)   vibrato.cpp:18
+  Direct leak of 2660 byte(s) in 1 object(s)   vibrato.cpp:18
+```
+
+The three ownership defects are distinct and a fix for one does not cover the others:
+initialising the pointer in the constructor makes destruction of a never-`Init`-ed instance
+safe, rule-of-three handling makes copying safe, and neither makes re-initialisation safe.
+Found by the Codex review on PR #9.
 
 ### 2.16 `SOLATimeStretch` — the synchronisation step is computed and discarded
 
@@ -1036,25 +1128,37 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 **Memory safety first**, because it corrupts silently on a target with no MMU:
 
-1. `Vibrato` — all of its memory-safety defects first (2.15): the `SetWidth` heap
+1. `Vibrato` — all four of its memory-safety defects first (2.15): the `SetWidth` heap
    overflow, the uninitialised `delay_line_` that the destructor reads and may `delete[]`
-   on a never-`Init`-ed instance, and the missing copy/move handling that makes copying an
-   initialised instance a double free. Only then the LFO phase and the interpolation taps,
-   which are correctness rather than safety.
+   on a never-`Init`-ed instance, the missing copy/move handling that makes copying an
+   initialised instance a double free, and the leak on every re-`Init` that the existing
+   `DifferentSampleRates` test already triggers. The four are independent — fixing the
+   constructor and the rule of three still leaves `Init()` leaking. Only then the LFO phase
+   and the interpolation taps, which are correctness rather than safety.
 2. `LPIIRComb` and `UniversalComb` — initialise `delay_frac_` in both constructors and
    both `Init()` bodies (2.21). Four lines, and it closes a NaN-to-`size_t` index on a
    documented public path.
-3. `DynamicCircularBuffer` — delete or implement its copy and move operations (2.6).
-   It owns a raw allocation with a destructor and no rule of three, so copying a
-   `DynamicCircularBuffer` is a double free on a public path.
-4. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
-   currently reach the FFT, so the module's output is nondeterministic and every other fix
-   to it is unmeasurable until this is done. Then fix the overlap-add, which folds each
-   transform's tail onto its own head and so reintroduces the circular convolution the
-   zero-padding exists to prevent; only after both is the missing `fftshift` worth
-   assessing. Then fix the overlap-add, which folds each
-   transform's tail onto its own head and reintroduces circular convolution; only after
-   both is the missing `fftshift` worth assessing.
+3. `CircularBuffer` and `DynamicCircularBuffer` — the two memory faults in the header
+   (2.6). Delete or implement `DynamicCircularBuffer`'s copy and move operations: it owns a
+   raw allocation with a destructor and no rule of three, so copying one is a double free on
+   a public path. Then reject or clamp a zero `size` in **both** `Init()` bodies; today
+   `Init(0)` is accepted by both and the next `Write()` is fatal — a division by zero in the
+   fixed-size class, and in the dynamic class an out-of-bounds heap write that lands
+   *before* the modulo, so guarding only the modulo does not fix it. The `Read()` domain
+   clamp is item 19; this step is the memory safety alone.
+4. `CrosstalkCanceller` — five defects, in this order (2.9). First bound `HRIR_LENGTH`:
+   above 256 the module reads past `left_time` on the first block, because `FFT_SIZE` is
+   hard-coded to 512 independently of the template parameter. Either derive `FFT_SIZE` from
+   `HRIR_LENGTH` or `static_assert(HRIR_LENGTH <= 256)`. Second, zero the full HRIR buffer:
+   112 indeterminate floats currently reach the FFT, so the module's output is
+   nondeterministic and every other fix to it is unmeasurable until this is done. Third,
+   size the transform for the filter actually computed — the inverse is a full 512-sample
+   response (32.9 % of its energy beyond sample 255), so a 256-sample block needs 767
+   points, and **fixing the overlap-add scheduling alone leaves the wrap in place**; this
+   step is a larger transform, a partitioned convolution, or a documented truncation, and it
+   subsumes the first fix. Only then the overlap-add, which folds each transform's tail onto
+   its own head, and last the missing `fftshift`, which cannot be assessed until the rest
+   holds.
 
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
@@ -1148,5 +1252,10 @@ will be written against the wrong target:
   `NOT_RUN`. Nothing in this audit was executed on a Daisy.
 - `src/pedal_harness/*.hpp` — harness code, not a DAFX port; out of scope here.
 - `CrosstalkCanceller`'s end-to-end degradation from the missing `fftshift` (2.9) is
-  `DERIVED` from the reference computation, not measured against the shipped C++.
+  `DERIVED` from the reference computation, not measured against the shipped C++. The
+  other three defects in that section are measured on the shipped module: the 512-sample
+  extent of the inverse filter was transformed from the coefficient arrays the module
+  itself computes, and the uninitialised-memory and `HRIR_LENGTH > 256` faults were
+  observed through its public API under ASan. What remains unmeasured is only the audible
+  consequence of the shift, which cannot be isolated while the other three stand.
 - Frame-burst CPU cost (2.14) is `DERIVED` from the code, not profiled on target.
