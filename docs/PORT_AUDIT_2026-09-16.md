@@ -274,7 +274,21 @@ template and leave the dynamic one returning the oldest sample at delay zero. Fo
 Codex review on PR #9; `DERIVED` by reading, since the code is line-for-line the same as
 the version measured above.
 
-`PROPOSED`: clamp the lower bound to `1.0f` and document the domain — **in both classes**.
+**`DynamicCircularBuffer` additionally owns raw memory with no rule of three.** `DERIVED`.
+It allocates `buffer_` with `new T[]` in `Init()` (`circularbuffer.h:186`) and `delete[]`s
+it in its destructor (`:171-176`), but declares no copy constructor, copy assignment or
+move operations — so the compiler generates shallow ones. Copying an initialised instance
+gives two owners of one allocation and a double free on the second destruction; copy
+assignment additionally leaks the destination's prior buffer. Unlike `Vibrato` (2.15), its
+constructor *does* initialise `buffer_` to `nullptr`, so destroying a never-`Init`-ed
+instance is safe; the defect is specifically the missing ownership handling. Found by the
+Codex review on PR #9.
+
+This is the third class in this audit with the same shape — raw owning pointer, correct
+destructor, absent copy/move — after `Vibrato` (2.15). Both are public API.
+
+`PROPOSED`: clamp the lower bound to `1.0f` and document the domain — **in both classes** —
+and delete or implement `DynamicCircularBuffer`'s copy and move operations.
 
 ### 2.7 `SimpleHRIR` — the ITD carries no left/right information
 
@@ -988,7 +1002,10 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 2. `LPIIRComb` and `UniversalComb` — initialise `delay_frac_` in both constructors and
    both `Init()` bodies (2.21). Four lines, and it closes a NaN-to-`size_t` index on a
    documented public path.
-3. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
+3. `DynamicCircularBuffer` — delete or implement its copy and move operations (2.6).
+   It owns a raw allocation with a destructor and no rule of three, so copying a
+   `DynamicCircularBuffer` is a double free on a public path.
+4. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
    currently reach the FFT, so the module's output is nondeterministic and every other fix
    to it is unmeasurable until this is done. Then fix the overlap-add, which folds each
    transform's tail onto its own head and so reintroduces the circular convolution the
@@ -999,46 +1016,56 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
-4. `HighShelving:43` — the cut coefficient (2.4).
-5. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
-6. `PhaseVocoder:256` — `tstretch = pitch_ratio_` (2.13); measured to make every upward
-   ratio exact.
-7. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
-   Nothing else in that file can be tested until this is resolved.
-8. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
+5. `HighShelving:43` — the cut coefficient (2.4).
+6. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
+7. `PhaseVocoder` — all three defects in 2.13, validated together on hop, phase and
+   resampling. `:256` (`tstretch = pitch_ratio_`) is one line and makes every upward ratio
+   exact, but on its own it leaves the `grain_length_` clamp disabling the resampler for
+   every ratio below 1, and leaves each grain's first hop emitted twice (±0.7 dB AM at
+   `fs/H`). The one-line fix is where to start, not the whole repair.
+8. `SpectralFilter` — the default template argument cannot be instantiated (2.12), then
+   the two runtime defects in 2.13: the overlap-add stages and zeroes the tail before the
+   block that should add it, giving a click at every block boundary, and `SetBandpass()`
+   uses `exp(+damping·n)` where the reference has a negative alpha, so the impulse response
+   grows instead of decaying. A compiling filter is not a working one. (An earlier revision
+   said nothing else in the file could be tested until the size was fixed; that was wrong —
+   both runtime defects were measured here at a power-of-two `FIR_LENGTH` of 1024.)
+9. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
    precision while there. Cheap, and it removes a 2π trap from the one function every
    spectral effect depends on.
 
 **Then the modules that are non-functional as shipped:**
 
-9. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
+10. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
    makes it worse. Then the two-pole envelope detector (2.1d), without which the timing
    still will not match the reference.
-10. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
-11. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
+11. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
+12. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
-12. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
-   The spectral cores are already exact, so this is the only thing between them and a
-   correct port.
-13. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
-14. `SOLATimeStretch` — rewrite (2.16).
-15. `CircularBuffer` — clamp and document the valid delay domain (2.6).
-16. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
+13. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13),
+   then the overlap-add gain neither of them normalises. The spectral cores are already
+   exact — `Robotization` cross-correlates 1.0000 against the reference at hop = N — so
+   buffering and gain are all that stand between them and a correct port.
+14. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
+15. `SOLATimeStretch` — rewrite (2.16).
+16. `CircularBuffer` **and `DynamicCircularBuffer`** — clamp and document the valid delay
+    domain in both (2.6).
+17. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
     the numerator (2.20); one loop moved, and it un-biases any lag search built on it.
-17. `CompressorExpander` — convert the reference's coefficients to time constants
+18. `CompressorExpander` — convert the reference's coefficients to time constants
     properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
-18. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
+19. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
     and correct the two comments that misdescribe it (2.19).
-19. `FDNReverb` — make the reference configuration reachable: damping off by default
+20. `FDNReverb` — make the reference configuration reachable: damping off by default
     or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
 
 **Then the process problems, which are what let all of the above ship:**
 
-20. Restore the nine excluded test files to the build (1a) and fix what turns red.
-21. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+21. Restore the nine excluded test files to the build (1a) and fix what turns red.
+22. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-22. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+23. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
