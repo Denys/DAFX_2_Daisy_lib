@@ -71,7 +71,6 @@ TEST_F(SpectralFilterTest, ProcessContinuity) {
   // Processing should produce continuous output
   filter_.SetBandpass(1000.0f, 0.002f);
 
-  float prev_out = 0.0f;
   bool found_non_zero = false;
 
   for (int i = 0; i < 2000; i++) {
@@ -82,7 +81,6 @@ TEST_F(SpectralFilterTest, ProcessContinuity) {
       found_non_zero = true;
     }
 
-    prev_out = out;
   }
 
   // After 2000 samples, bandpass should produce some output for in-band signal

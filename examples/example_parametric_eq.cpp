@@ -31,7 +31,7 @@ int main() {
   PeakFilter midPeak;
   midPeak.Init(SAMPLE_RATE);
   midPeak.SetFrequency(1000.0f); // 1 kHz center
-  midPeak.SetQ(1.0f);            // Wide bandwidth
+  midPeak.SetBandwidth(1000.0f); // 1 kHz wide (Q = 1 at this centre)
   midPeak.SetGain(-2.0f);        // -2 dB mid cut
 
   HighShelving highShelf;
@@ -43,7 +43,8 @@ int main() {
   std::cout << "  Low Shelf:  " << lowShelf.GetFrequency() << " Hz, "
             << lowShelf.GetGain() << " dB" << std::endl;
   std::cout << "  Mid Peak:   " << midPeak.GetFrequency()
-            << " Hz, Q=" << midPeak.GetQ() << ", " << midPeak.GetGain() << " dB"
+            << " Hz, BW=" << midPeak.GetBandwidth() << " Hz, "
+            << midPeak.GetGain() << " dB"
             << std::endl;
   std::cout << "  High Shelf: " << highShelf.GetFrequency() << " Hz, "
             << highShelf.GetGain() << " dB" << std::endl;
@@ -86,6 +87,9 @@ int main() {
   std::cout << "  RMS Output: " << rms_out << std::endl;
   std::cout << "  Average Gain: " << (20.0f * std::log10(rms_out / rms_in))
             << " dB" << std::endl;
+  std::cout << "  Output Buffer: " << BUFFER_SIZE
+            << " samples, last = " << output_buffer[BUFFER_SIZE - 1]
+            << std::endl;
 
   return 0;
 }

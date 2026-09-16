@@ -34,7 +34,7 @@ int main() {
   ToneStack tonestack;
   tonestack.Init(SAMPLE_RATE);
   tonestack.SetBass(0.6f);   // Slight bass boost
-  tonestack.SetMid(0.4f);    // Scooped mids
+  tonestack.SetMiddle(0.4f);    // Scooped mids
   tonestack.SetTreble(0.7f); // Bright treble
 
   WahWah wah;
@@ -47,7 +47,7 @@ int main() {
   std::cout << "  1. Tube Distortion (Drive: " << tube.GetDrive() << ")"
             << std::endl;
   std::cout << "  2. Tone Stack (B:" << tonestack.GetBass()
-            << " M:" << tonestack.GetMid() << " T:" << tonestack.GetTreble()
+            << " M:" << tonestack.GetMiddle() << " T:" << tonestack.GetTreble()
             << ")" << std::endl;
   std::cout << "  3. Auto-Wah (Rate: " << wah.GetFrequency() << " Hz)"
             << std::endl;
@@ -86,6 +86,9 @@ int main() {
   std::cout << "  Peak Input:  " << peak_in << std::endl;
   std::cout << "  Peak Output: " << peak_out << std::endl;
   std::cout << "  Gain: " << (20.0f * std::log10(peak_out / peak_in)) << " dB"
+            << std::endl;
+  std::cout << "  Output Buffer: " << BUFFER_SIZE
+            << " samples, last = " << output_buffer[BUFFER_SIZE - 1]
             << std::endl;
 
   return 0;
