@@ -29,7 +29,21 @@ passing**. Both statements are true and both are misleading: the test suite cont
 essentially no numerical validation against MATLAB, so it passes while several modules
 are functionally dead.
 
-`VERIFIED` — test suite built with GCC 12 and executed: 151/151 pass.
+`VERIFIED`, **with the method stated** — 151/151 pass under GCC 12, but *not* in the
+repository's own configuration. The stock build does not compile (§4.1), so the suite was
+built through a compiler wrapper that force-included `<cmath>` and disabled `-Werror`:
+
+```sh
+exec /usr/bin/g++ "$@" -include cmath -Wno-error
+```
+
+The pass count is real and the measurements taken from that build stand. What it does
+**not** establish is that the repository's GCC configuration works — it does not, which is
+finding 4.1. An earlier revision of this line said only "built with GCC 12 and executed",
+which reads as validation of the stock configuration and was the single worst claim in this
+document: a green number obtained by bypassing the checks, published under a `VERIFIED`
+label, in an audit whose thesis is that the repository's own green numbers are not backed
+by their evidence. Found by the Codex review on PR #9.
 
 Four separate reasons that number means nothing:
 
