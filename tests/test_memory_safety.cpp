@@ -486,3 +486,66 @@ TEST(MemorySafetyXCorr, OversizedLagRangeDoesNotUnderflow) {
   EXPECT_FLOAT_EQ(norm_out[4], 0.0f);
   EXPECT_FLOAT_EQ(norm_out[7], 0.0f);
 }
+
+// ---------------------------------------------------------------------------
+// Fourth review round on this PR. Clamping Init(0) to a size of 1 stopped
+// Write() from dividing by zero but left the interpolating readers exposed:
+// size_ - 2 underflows to SIZE_MAX, whose float value the cast to size_t
+// cannot represent.
+//   circularbuffer.h:95: runtime error: 1.84467e+19 is outside the range of
+//       representable values of type 'long unsigned int'
+//
+// Probing the rest of the read surface found the same class of fault the combs
+// had, in a file this branch had already touched: `delay_samples < 0.0f` is
+// false for a NaN, so the lower clamp let one through to the same cast.
+// ---------------------------------------------------------------------------
+
+TEST(MemorySafetyBuffers, InterpolatedReadOnAnUndersizedBuffer) {
+  CircularBuffer<float, 128> cb;
+  cb.Init(0); // clamped to 1 - nothing to interpolate between
+  EXPECT_TRUE(std::isfinite(cb.ReadInterpolated(0.5f)));
+  cb.Write(1.0f);
+  EXPECT_TRUE(std::isfinite(cb.ReadInterpolated(0.5f)));
+
+  DynamicCircularBuffer<float> db;
+  db.Init(0);
+  EXPECT_TRUE(std::isfinite(db.ReadInterpolated(0.5f)));
+  db.Write(1.0f);
+  EXPECT_TRUE(std::isfinite(db.ReadInterpolated(0.5f)));
+}
+
+TEST(MemorySafetyBuffers, CubicReadOnAnUndersizedBuffer) {
+  // The four-point stencil needs four samples; below that it degrades to the
+  // linear read rather than reaching outside the buffer.
+  for (size_t size : {size_t{0}, size_t{1}, size_t{2}, size_t{3}, size_t{4}}) {
+    CircularBuffer<float, 128> cb;
+    cb.Init(size);
+    for (int i = 0; i < 8; ++i) {
+      cb.Write(static_cast<float>(i + 1));
+    }
+    EXPECT_TRUE(std::isfinite(cb.ReadCubic(1.5f))) << "size " << size;
+    EXPECT_TRUE(std::isfinite(cb.ReadCubic(0.0f))) << "size " << size;
+  }
+}
+
+TEST(MemorySafetyNonFinite, BufferReadsRejectNonFiniteDelays) {
+  const float bad[] = {std::nanf(""), std::numeric_limits<float>::infinity(),
+                       -std::numeric_limits<float>::infinity(), -1.0f, 1.0e30f};
+
+  CircularBuffer<float, 128> cb;
+  cb.Init(64);
+  for (int i = 0; i < 64; ++i) {
+    cb.Write(static_cast<float>(i));
+  }
+  DynamicCircularBuffer<float> db;
+  db.Init(64);
+  for (int i = 0; i < 64; ++i) {
+    db.Write(static_cast<float>(i));
+  }
+
+  for (float delay : bad) {
+    EXPECT_TRUE(std::isfinite(cb.ReadInterpolated(delay))) << "delay " << delay;
+    EXPECT_TRUE(std::isfinite(cb.ReadCubic(delay))) << "delay " << delay;
+    EXPECT_TRUE(std::isfinite(db.ReadInterpolated(delay))) << "delay " << delay;
+  }
+}

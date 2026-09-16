@@ -87,7 +87,16 @@ public:
    * @return Interpolated sample
    */
   inline T ReadInterpolated(float delay_samples) const {
-    if (delay_samples < 0.0f)
+    // A one-sample buffer has nothing to interpolate between, and the
+    // size_ - 2 below would underflow to SIZE_MAX, whose float value the cast
+    // cannot represent. Init() clamps the size to at least 1, not 2.
+    if (size_ < 2)
+      return Read(0);
+
+    // Establish the domain before the cast. `delay_samples < 0.0f` is false
+    // for a NaN, so the original test let one through to a conversion that is
+    // undefined; writing the guard as a negated non-negative test catches it.
+    if (!(delay_samples >= 0.0f))
       delay_samples = 0.0f;
     if (delay_samples >= static_cast<float>(size_ - 1))
       delay_samples = static_cast<float>(size_ - 2);
@@ -107,7 +116,15 @@ public:
    * @return Interpolated sample (cubic Hermite)
    */
   inline T ReadCubic(float delay_samples) const {
-    if (delay_samples < 1.0f)
+    // The four-point stencil below reaches one sample below delay_int and two
+    // above, so it needs at least four samples to stay inside the buffer and
+    // mean anything. Below that, size_ - 2 and size_ - 3 underflow as well.
+    if (size_ < 4)
+      return ReadInterpolated(delay_samples);
+
+    // Same domain problem as ReadInterpolated: a NaN fails `< 1.0f` and
+    // reaches the cast.
+    if (!(delay_samples >= 1.0f))
       delay_samples = 1.0f;
     if (delay_samples >= static_cast<float>(size_ - 2))
       delay_samples = static_cast<float>(size_ - 3);
@@ -248,7 +265,16 @@ public:
   }
 
   inline T ReadInterpolated(float delay_samples) const {
-    if (delay_samples < 0.0f)
+    // A one-sample buffer has nothing to interpolate between, and the
+    // size_ - 2 below would underflow to SIZE_MAX, whose float value the cast
+    // cannot represent. Init() clamps the size to at least 1, not 2.
+    if (size_ < 2)
+      return Read(0);
+
+    // Establish the domain before the cast. `delay_samples < 0.0f` is false
+    // for a NaN, so the original test let one through to a conversion that is
+    // undefined; writing the guard as a negated non-negative test catches it.
+    if (!(delay_samples >= 0.0f))
       delay_samples = 0.0f;
     if (delay_samples >= static_cast<float>(size_ - 1))
       delay_samples = static_cast<float>(size_ - 2);
