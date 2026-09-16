@@ -45,6 +45,10 @@ public:
    * @param size Actual size to use (must be <= MaxSize)
    */
   void Init(size_t size = MaxSize) {
+    // A zero size is not a usable buffer: Write() would evaluate `% size_`
+    // and trap. Clamp into [1, MaxSize] rather than leave the object armed.
+    if (size == 0)
+      size = 1;
     size_ = (size <= MaxSize) ? size : MaxSize;
     write_ptr_ = 0;
     Clear();
@@ -175,15 +179,45 @@ public:
     }
   }
 
+  // This class owns a raw allocation. The compiler-generated copy operations
+  // would give two owners of one buffer and double-free on the second
+  // destruction, so copying is disabled; moving transfers ownership.
+  DynamicCircularBuffer(const DynamicCircularBuffer &) = delete;
+  DynamicCircularBuffer &operator=(const DynamicCircularBuffer &) = delete;
+
+  DynamicCircularBuffer(DynamicCircularBuffer &&other) noexcept
+      : buffer_(other.buffer_), write_ptr_(other.write_ptr_),
+        size_(other.size_) {
+    other.buffer_ = nullptr;
+    other.write_ptr_ = 0;
+    other.size_ = 0;
+  }
+
+  DynamicCircularBuffer &operator=(DynamicCircularBuffer &&other) noexcept {
+    if (this != &other) {
+      delete[] buffer_;
+      buffer_ = other.buffer_;
+      write_ptr_ = other.write_ptr_;
+      size_ = other.size_;
+      other.buffer_ = nullptr;
+      other.write_ptr_ = 0;
+      other.size_ = 0;
+    }
+    return *this;
+  }
+
   /**
    * @brief Initialize with specified size
-   * @param size Buffer size in samples
+   * @param size Buffer size in samples; a zero size is clamped to 1
    */
   void Init(size_t size) {
     if (buffer_ != nullptr)
       delete[] buffer_;
 
-    size_ = size;
+    // A zero size allocates nothing while leaving the object usable, so the
+    // first Write() stores through buffer_[0] before it reaches the modulo.
+    // That write is out of bounds, and a guard on the modulo alone misses it.
+    size_ = (size == 0) ? 1 : size;
     buffer_ = new T[size_];
     write_ptr_ = 0;
     Clear();

@@ -45,6 +45,15 @@ template <size_t HRIR_LENGTH = 256> class CrosstalkCanceller {
 public:
   static constexpr size_t FFT_SIZE = 512; // Next power of 2
 
+  // FFT_SIZE is fixed while HRIR_LENGTH is a caller-chosen template
+  // parameter. ProcessBlock() reads left_time[i + HRIR_LENGTH] for every
+  // i < HRIR_LENGTH, so anything above FFT_SIZE / 2 indexes past an
+  // FFT_SIZE-sized array. Reject it at compile time rather than overflow the
+  // stack on the first completed block.
+  static_assert(HRIR_LENGTH > 0 && HRIR_LENGTH <= FFT_SIZE / 2,
+                "HRIR_LENGTH must be in (0, FFT_SIZE/2]; the transform size "
+                "is not derived from it");
+
   CrosstalkCanceller()
       : sample_rate_(48000.0f), speaker_angle_(10.0f), regularization_(1e-5f),
         input_pos_(0) {}
@@ -189,10 +198,15 @@ private:
     //   C[1][0] = right ear from left speaker (contralateral)
     //   C[1][1] = right ear from right speaker (ipsilateral)
 
-    float hrir_ll[HRIR_LENGTH]; // left ear, left speaker
-    float hrir_lr[HRIR_LENGTH]; // left ear, right speaker
-    float hrir_rl[HRIR_LENGTH]; // right ear, left speaker
-    float hrir_rr[HRIR_LENGTH]; // right ear, right speaker
+    // Generate() only writes and zeroes GetLength() samples - 0.003 * fs, so
+    // 144 at 48 kHz - while PadAndFFT below copies the full HRIR_LENGTH.
+    // Without this zero-initialisation the remaining samples are
+    // indeterminate and reach the FFT, making the inverse filters differ run
+    // to run.
+    float hrir_ll[HRIR_LENGTH] = {}; // left ear, left speaker
+    float hrir_lr[HRIR_LENGTH] = {}; // left ear, right speaker
+    float hrir_rl[HRIR_LENGTH] = {}; // right ear, left speaker
+    float hrir_rr[HRIR_LENGTH] = {}; // right ear, right speaker
 
     // Left speaker at +angle, right speaker at -angle
     hrir_gen_.Generate(speaker_angle_ / 2.0f, hrir_ll);  // Left ear from left

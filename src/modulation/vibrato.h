@@ -31,12 +31,58 @@
 namespace daisysp {
 class Vibrato {
 public:
-  Vibrato() {}
+  /** Largest width the documented parameter range admits, in seconds.
+   *  Init() allocates for this so that SetWidth() never has to reallocate:
+   *  the setter is callable from the audio thread, and the delay line must
+   *  already be large enough for any width the header promises to accept.
+   *  Cost at 48 kHz is 2 + 4800 + 2*4800 = 14402 floats (~57.6 kB); at
+   *  96 kHz, ~115 kB. */
+  static constexpr float kMaxWidthSeconds = 0.1f;
+
+  Vibrato()
+      : sample_rate_(48000.0f), freq_(5.0f), width_(0.005f), delay_samples_(0),
+        width_samples_(0), mod_freq_samples_(0.0f), delay_line_size_(2),
+        delay_line_capacity_(0), delay_line_(nullptr), write_ptr_(0) {}
+
   ~Vibrato() {
-    if (delay_line_ != nullptr) {
+    delete[] delay_line_;
+    delay_line_ = nullptr;
+  }
+
+  // The delay line is a raw owning allocation. Compiler-generated copies would
+  // give two owners of one buffer and double-free on the second destruction.
+  Vibrato(const Vibrato &) = delete;
+  Vibrato &operator=(const Vibrato &) = delete;
+
+  Vibrato(Vibrato &&other) noexcept
+      : sample_rate_(other.sample_rate_), freq_(other.freq_),
+        width_(other.width_), delay_samples_(other.delay_samples_),
+        width_samples_(other.width_samples_),
+        mod_freq_samples_(other.mod_freq_samples_),
+        delay_line_size_(other.delay_line_size_),
+        delay_line_capacity_(other.delay_line_capacity_),
+        delay_line_(other.delay_line_), write_ptr_(other.write_ptr_) {
+    other.delay_line_ = nullptr;
+    other.delay_line_capacity_ = 0;
+  }
+
+  Vibrato &operator=(Vibrato &&other) noexcept {
+    if (this != &other) {
       delete[] delay_line_;
-      delay_line_ = nullptr;
+      sample_rate_ = other.sample_rate_;
+      freq_ = other.freq_;
+      width_ = other.width_;
+      delay_samples_ = other.delay_samples_;
+      width_samples_ = other.width_samples_;
+      mod_freq_samples_ = other.mod_freq_samples_;
+      delay_line_size_ = other.delay_line_size_;
+      delay_line_capacity_ = other.delay_line_capacity_;
+      delay_line_ = other.delay_line_;
+      write_ptr_ = other.write_ptr_;
+      other.delay_line_ = nullptr;
+      other.delay_line_capacity_ = 0;
     }
+    return *this;
   }
 
   void Init(float sample_rate);
@@ -48,6 +94,9 @@ public:
     RecalculateCoefficients();
   }
 
+  /** Width in seconds. Values outside [0, kMaxWidthSeconds] are clamped, so
+   *  the delay line allocated by Init() always covers the resulting size.
+   *  GetWidth() reports the clamped value. */
   inline void SetWidth(const float &width) {
     width_ = width;
     RecalculateCoefficients();
@@ -64,7 +113,8 @@ private:
   int delay_samples_;
   int width_samples_;
   float mod_freq_samples_;
-  int delay_line_size_;
+  int delay_line_size_;     // logical length in use, <= delay_line_capacity_
+  int delay_line_capacity_; // allocated length, sized for kMaxWidthSeconds
   float *delay_line_;
   int write_ptr_;
 

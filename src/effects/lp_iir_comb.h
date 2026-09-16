@@ -51,9 +51,9 @@ namespace daisysp {
 template <size_t MaxDelay = 4096> class LPIIRComb {
 public:
   LPIIRComb()
-      : sample_rate_(48000.0f), delay_samples_(100), feedback_(0.7f),
-        damping_(0.3f), b0_(0.5f), b1_(0.5f), a1_(0.0f), x_hold_(0.0f),
-        y_hold_(0.0f), write_ptr_(0) {}
+      : sample_rate_(48000.0f), delay_samples_(100), delay_frac_(100.0f),
+        feedback_(0.7f), damping_(0.3f), b0_(0.5f), b1_(0.5f), a1_(0.0f),
+        x_hold_(0.0f), y_hold_(0.0f), write_ptr_(0) {}
 
   /**
    * @brief Initialize the LP-IIR comb filter
@@ -62,6 +62,11 @@ public:
    */
   void Init(float sample_rate) {
     sample_rate_ = sample_rate;
+
+    // Keep the fractional delay in step with the integer one. Without this,
+    // ProcessFractional() reads an indeterminate delay_frac_ and its NaN
+    // result is cast to size_t to index the buffer.
+    delay_frac_ = static_cast<float>(delay_samples_);
 
     // Clear delay buffer
     std::memset(delay_buffer_, 0, sizeof(delay_buffer_));
@@ -116,6 +121,13 @@ public:
                      static_cast<float>(MaxDelay) - delay_frac_;
     while (read_pos >= static_cast<float>(MaxDelay)) {
       read_pos -= static_cast<float>(MaxDelay);
+    }
+
+    // A non-finite read_pos casts to 2^63 and indexes outside the buffer. The
+    // setters below reject the non-finite inputs that are known to reach here;
+    // this covers the ones that are not.
+    if (!std::isfinite(read_pos)) {
+      read_pos = 0.0f;
     }
 
     // Get integer and fractional parts

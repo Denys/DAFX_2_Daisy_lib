@@ -54,8 +54,8 @@ namespace daisysp {
 template <size_t MaxDelay = 2048> class UniversalComb {
 public:
   UniversalComb()
-      : sample_rate_(48000.0f), delay_samples_(10), feedback_(0.0f),
-        feedforward_(1.0f), blend_(0.5f), write_ptr_(0) {}
+      : sample_rate_(48000.0f), delay_samples_(10), delay_frac_(10.0f),
+        feedback_(0.0f), feedforward_(1.0f), blend_(0.5f), write_ptr_(0) {}
 
   /**
    * @brief Initialize the comb filter
@@ -64,6 +64,11 @@ public:
    */
   void Init(float sample_rate) {
     sample_rate_ = sample_rate;
+
+    // Keep the fractional delay in step with the integer one. Without this,
+    // ProcessFractional() reads an indeterminate delay_frac_ and its NaN
+    // result is cast to size_t to index the buffer.
+    delay_frac_ = static_cast<float>(delay_samples_);
 
     // Clear delay buffer
     std::memset(delay_buffer_, 0, sizeof(delay_buffer_));
@@ -110,6 +115,13 @@ public:
       read_pos -= static_cast<float>(MaxDelay);
     }
 
+    // A non-finite read_pos casts to 2^63 and indexes outside the buffer. The
+    // setters below reject the non-finite inputs that are known to reach here;
+    // this covers the ones that are not.
+    if (!std::isfinite(read_pos)) {
+      read_pos = 0.0f;
+    }
+
     // Get integer and fractional parts
     size_t read_int = static_cast<size_t>(read_pos);
     float frac = read_pos - static_cast<float>(read_int);
@@ -149,6 +161,11 @@ public:
   }
 
   inline void SetDelayFractional(float samples) {
+    // NaN fails every comparison, so the upper clamp below would let it
+    // through to a cast that is undefined. Reject it first.
+    if (!std::isfinite(samples) || samples < 0.0f) {
+      samples = 0.0f;
+    }
     delay_frac_ = (samples > static_cast<float>(MaxDelay - 1))
                       ? static_cast<float>(MaxDelay - 1)
                       : samples;
