@@ -31,7 +31,7 @@ are functionally dead.
 
 `VERIFIED` — test suite built with GCC 12 and executed: 151/151 pass.
 
-Three separate reasons that number means nothing:
+Four separate reasons that number means nothing:
 
 **(a) Nine of 29 test files are excluded from the build.** `tests/CMakeLists.txt`
 comments six of them out and never lists the other three:
@@ -84,7 +84,12 @@ either.
 
 ## 2. Confirmed defects
 
-Ordered by severity. Each row was reproduced by execution.
+Ordered by severity. Most findings here were reproduced by execution and say so; the
+exceptions are labelled and are not measurements. Specifically, 2.9 (`CrosstalkCanceller`)
+establishes the omission and the mechanism but does not measure the shipped C++ end to end;
+2.10 (`CompressorExpander`) is `DERIVED` from the call graph; 2.11 (`Tube` normalisation)
+and 2.14 (frame-burst CPU) are `DERIVED` from the code. Read the label on each, not this
+heading.
 
 ### 2.1 `NoiseGate` — three independent CRITICAL defects; ships as a pass-through
 
@@ -353,9 +358,9 @@ wrappers around it are not.
 
 **Correct and measured:** the FFT (`fft_handler.h`) agrees with a double-precision
 reference DFT to float epsilon at N = 8/16/1024, with the `1/N` inverse scaling applied
-exactly once; `princarg.h` is an algebraically equivalent refactor of `princarg.m` using
-`floor` (not `fmod`, so the negative-input sign trap is avoided), worst deviation
-1.3e-05 rad over ±200 rad; `windows.h` implements the **periodic** Hanning that
+exactly once; `princarg.h` matches `princarg.m` on the interior and uses `floor` (not
+`fmod`, so the negative-input sign trap is avoided), though it differs by 2π at odd
+multiples of π — see 2.18; `windows.h` implements the **periodic** Hanning that
 `hanningz.m` requires — measured COLA of `w²` is exactly 1.5 at hop N/4 and 3.0 at
 hop N/8.
 
@@ -486,6 +491,39 @@ tone only **114 of 187 frames** come back voiced, with five frames reporting `f0
 Block mode on the same signal is exact. `Process()` is usable as-is; `ProcessSample()` is
 not.
 
+### 2.18 `princarg` differs from the reference by 2π at the wrap boundary
+
+`src/utility/princarg.h:44` vs `M_files_chap07/princarg.m`.
+
+The two expressions are algebraically identical wherever `u = (p+π)/2π` is not an integer:
+MATLAB's `mod(p+π, −2π) + π` expands to `p + 2π − 2π·ceil(u)`, the C++ to `p − 2π·floor(u)`,
+and `ceil(u) = floor(u)+1` collapses them. **At integer `u` — that is, at odd multiples of
+π — `ceil(u) = floor(u)` and the two differ by exactly 2π.**
+
+`VERIFIED`, sweeping float inputs and comparing against a double-precision evaluation of
+the MATLAB expression:
+
+```
+p = +3.141592741 (float π)   MATLAB = -3.141592566   C++ = +3.141592741   diff = 6.283185
+p = +9.424777985 (float 3π)  MATLAB = -3.141592630   C++ = +3.141592503   diff = 6.283185
+p = -9.424777985             MATLAB = +3.141592630   C++ = -3.141592503   diff = 6.283185
+sweep ±200 rad at 1e-4: 2 points with |diff| > 1 rad, worst 6.283181 at p = 172.7876 (55π)
+```
+
+One ULP either side of the boundary the two agree to 1e-7, so the discrepancy is a knife
+edge, not a region — but it is reachable, and `princarg` is applied in the phase vocoder to
+`phi − phi0 − omega`, a phase difference that sits near ±π routinely. A 2π error there
+corrupts that bin's frequency estimate for that frame.
+
+Which side each implementation lands on is not the interesting part and depends on the
+float representation and on `TWOPI` being a float literal (6.28318548f) while `M_PI` is a
+double — the measured direction is in fact the opposite of what the algebra predicts for
+exact reals, because `float(π) > π`. The finding is the 2π gap itself.
+
+This supersedes the "equivalent refactor, worst deviation 1.3e-05 rad" claim in an earlier
+revision of this document, which sampled the boundary at a decimal literal rather than at
+the exact float and therefore missed it. Found by the Codex review on PR #9.
+
 ---
 
 ## 3. Verified-correct modules
@@ -500,8 +538,15 @@ These were compared line by line and, where noted, numerically:
   to float32 precision; the largest residual (2.7e-06 rel. at fc=1 kHz, fb=200 Hz) is
   float32 accumulation in a high-Q resonator, reproduced by a float32-exact reference.
 - **`UniversalComb::Process`** — bit-exact against `unicomb.m` (max abs diff 0.0).
-- **`FDNReverb::Process`** — bit-exact against `delaynetwork.m` over 1200 samples
-  (max abs diff 0.0), including all sixteen feedback-matrix entries and signs.
+- **`FDNReverb::Process`** — the recirculating core is bit-exact against `delaynetwork.m`
+  over 1200 samples (max abs diff 0.0), including all sixteen feedback-matrix entries and
+  signs. **Measured with damping disabled and dry and wet both forced to unity**, which is
+  the only configuration in which the two are comparable. As shipped it does not reproduce
+  the reference: `damping_` defaults to 0.3 (the reference has no damping at all) and the
+  output is a convex mix `(1−mix)·dry + mix·wet` with `mix_` defaulting to 0.5, whereas
+  `delaynetwork.m:37` emits `dry + wet` at unity each. No value of `mix_` makes a convex
+  combination equal to a sum, so the reference's output level is unreachable through the
+  public API. See also the non-prime delay lengths after sample-rate scaling (4.3).
 - **`CompressorExpander`** core — attack/release selection direction and the lookahead
   topology both match `compexp.m`.
 - **`Tube`** waveshaper — both removable singularities (`x==Q` and the `Q==0`, `x==0`
@@ -513,8 +558,9 @@ These were compared line by line and, where noted, numerically:
 - **`FFTHandler`** — `VERIFIED` against a double-precision reference DFT at N = 8, 16 and
   1024: forward, inverse and round-trip all agree to float epsilon, with the `1/N` inverse
   scaling applied exactly once. Correct twiddle sign and bit-reversal.
-- **`princarg`** — `VERIFIED` equivalent to `princarg.m`; uses `floor`, avoiding the
-  `fmod` sign trap. Worst deviation 1.3e-05 rad over ±200 rad.
+- **`princarg`** — equivalent to `princarg.m` on the interior, and it uses `floor` rather
+  than `fmod`, avoiding the sign trap for negative input. **It is not equivalent at the
+  wrap boundary** — see 2.18.
 - **`Windows::Hanning`** — the **periodic** form `hanningz.m` requires, not MATLAB's
   symmetric `hann`. `VERIFIED` COLA of `w²`: exactly 1.5 at hop N/4, 3.0 at hop N/8.
   (The in-file comment calls it "symmetric"; the comment is wrong, the code is right.)
@@ -541,19 +587,20 @@ finding above MINOR:
 | Spatial | 0 | 3 | ✘ StereoPan, CrosstalkCanceller, SimpleHRIR |
 | Spectral | 0 | 4 | ✘ Robotization, Whisperization, SpectralFilter, PhaseVocoder |
 | Time-domain pitch/time | 0 | 3 | ✘ SOLATimeStretch, Vibrato, YIN |
-| Low-level utility | 3 | 1 | ✔ FFTHandler, princarg, Windows — ✘ xcorr |
-| **Total** | **9** | **19** | |
+| Low-level utility | 2 | 2 | ✔ FFTHandler, Windows — ✘ princarg, xcorr |
+| **Total** | **8** | **20** | |
 
-Three of the nineteen are defective only in a preset, a parameter path or one mode
-(`UniversalComb`, `CompressorExpander`, `YIN`) and have a correct core. `FDNReverb` and
-`Tube` are listed clean on their audio path but each carries a documented deviation —
-non-prime delay lengths after sample-rate scaling, and dropped whole-signal normalisation
-respectively.
+Four of the twenty are defective only in a preset, a parameter path, one mode or a single
+boundary value (`UniversalComb`, `CompressorExpander`, `YIN`, `princarg`) and have a
+correct core. `FDNReverb` and `Tube` are listed clean on their recirculating core and
+waveshaper respectively, but neither reproduces the reference as shipped — see 2.11, 4.3
+and the `FDNReverb` entry above.
 
-The shape of the result matters more than the count: **the low-level layer is sound and
-the wrappers around it are not.** Every FFT, window, phase-unwrap and matrix-algebra check
-passed. Almost every failure is in buffering, state management, or a parameter mapping —
-not in the DSP mathematics.
+The shape of the result matters more than the count: **the low-level layer is sounder than
+the wrappers around it.** Every FFT, window and matrix-algebra check passed, and the one
+low-level defect found (`princarg`, 2.18) is a single boundary value rather than a
+structural error. Almost every failure is in buffering, state management, or a parameter
+mapping — not in the DSP mathematics.
 
 ---
 
@@ -579,16 +626,64 @@ The checked-in `build/` directory contains MSVC `.vcxproj` artefacts, so the pro
 only ever been built on one toolchain. For a library whose stated target is an ARM
 Cortex-M7 cross-build, this is a portability gap, not a cosmetic one.
 
-### 4.2 Source attribution is incomplete
+### 4.2 Source attribution is present but not always actionable
 
-Eleven headers under `src/` declare no DAFX reference. Three of those
-(`pedal_harness/*.hpp`) are harness code and legitimately out of DAFX scope. The rest —
-`analysis/yin.h`, `effects/tonestack.h`, `effects/wahwah.h`, `modulation/ringmod.h`,
-`utility/{circularbuffer,envelopefollower,fft_handler,windows,xcorr}.h` — carry no
-citation, so a reviewer cannot tell what they are supposed to match. `highshelving.h`
-cites `lowshelving.m`, which is precisely the mis-attribution that produced defect 2.4.
+An earlier revision of this document claimed that eleven headers carry no DAFX reference
+and named nine of them. **That was wrong.** It was produced by a script that searched only
+the first 25 lines of each header for a `.m` filename, so it missed every citation written
+as a chapter and section, and its arithmetic did not match its own list. Checking the full
+text of each header instead:
 
-### 4.3 A note on the reference itself
+```
+analysis/yin.h              DAFX 2nd Ed., Chapter 9, yinDAFX.m
+effects/tonestack.h         DAFX 2nd Ed., Chapter 12, Section 12.4
+effects/wahwah.h            DAFX 2nd Ed., Chapter 12, Section 12.3
+modulation/ringmod.h        DAFX 2nd Ed., Chapter 3, Section 3.2
+utility/circularbuffer.h    DAFX 2nd Ed., Chapter 2, Section 2.4
+utility/envelopefollower.h  DAFX 2nd Ed., Chapter 4, Section 4.2
+utility/fft_handler.h       DAFX 2nd Ed., Chapter 7
+utility/windows.h           DAFX 2nd Ed., Chapter 6 §6.2 and Chapter 7 §7.1
+utility/xcorr.h             DAFX 2nd Ed., Chapter 6, Section 6.3
+```
+
+Every one carries a citation. Only the three `pedal_harness/*.hpp` files have none, and
+they are harness code, legitimately outside DAFX scope. Found by the Codex review on PR #9.
+
+The real attribution problem is narrower and is a genuine cause of defects in this audit:
+
+- **`highshelving.h` cites `lowshelving.m`** and describes itself as that file with the
+  output sign changed. That is exactly the mis-attribution that produced defect 2.4 — the
+  cut coefficient differs between the two filters and the citation gave no reason to check.
+- **A chapter-and-section citation cannot be diffed.** Where a `.m` file exists, naming the
+  chapter instead of the file means a reviewer cannot mechanically compare the port to its
+  source. `xcorr.h` cites Chapter 6 §6.3 (SOLA) while implementing a normalisation that
+  differs from `xcorr_norm.m` in Chapter 9 — defensible, since it never claimed that file,
+  but only discoverable by reading both.
+- **Where no `.m` exists, the citation should say so.** `tonestack.h` and `wahwah.h` cite
+  Chapter 12 sections that have no accompanying script, so no bit-exactness test is
+  possible for them at all. Recording that explicitly would have made the gap visible
+  instead of implying a reference that cannot be checked.
+
+### 4.3 `FDNReverb` loses its coprime delay lengths at any rate but 44.1 kHz
+
+`src/effects/fdn_reverb.h:265-274`. The base delays are the four primes
+`149, 211, 263, 293` that `delaynetwork.m:28` specifies, but `RecalculateDelays()` scales
+them by `sample_rate_/44100` and truncates. `VERIFIED` by arithmetic at the library's own
+documented 48 kHz:
+
+```
+base 44.1 kHz : 149, 211, 263, 293   (all prime)
+scaled 48 kHz : 162, 229, 286, 318
+gcd(162,286)=2   gcd(162,318)=6   gcd(286,318)=2
+```
+
+Three of the four become even. Mutually prime lengths are what keep the network's echo
+times from coinciding; once they share factors the modal density collapses onto repeated
+delays and the tail acquires a metallic flutter. `SetDelayScale()` (`fdn_reverb.h:191`) has
+the same effect at any scale factor. `PROPOSED`: snap each scaled length to the nearest
+prime rather than truncating.
+
+### 4.4 A note on the reference itself
 
 `M_files_chap04/lpiircomb.m:21` assigns `xhhold` where every other line uses `xhold` — a
 typo in the published book code, so that variable stays 0 for the whole run. The C++
@@ -613,28 +708,31 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    ratio exact.
 5. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
    Nothing else in that file can be tested until this is resolved.
+6. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
+   precision while there. Cheap, and it removes a 2π trap from the one function every
+   spectral effect depends on.
 
 **Then the modules that are non-functional as shipped:**
 
-6. `NoiseGate` — all three defects together (2.1); fixing the condition alone makes it
+7. `NoiseGate` — all three defects together (2.1); fixing the condition alone makes it
    worse.
-7. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
-8. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
+8. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
+9. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
-9. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
+10. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
    The spectral cores are already exact, so this is the only thing between them and a
    correct port.
-10. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
-11. `SOLATimeStretch` — rewrite (2.16).
-12. `CircularBuffer` — clamp and document the valid delay domain (2.6).
+11. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
+12. `SOLATimeStretch` — rewrite (2.16).
+13. `CircularBuffer` — clamp and document the valid delay domain (2.6).
 
 **Then the process problems, which are what let all of the above ship:**
 
-13. Restore the nine excluded test files to the build (1a) and fix what turns red.
-14. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+14. Restore the nine excluded test files to the build (1a) and fix what turns red.
+15. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-15. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+16. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
