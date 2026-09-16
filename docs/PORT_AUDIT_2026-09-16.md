@@ -288,6 +288,80 @@ undocumented. `DERIVED`.
 Separately, `SetDistortion()` has no guard: `dist_ = 0` makes `1/dist_` and every
 `1-exp(...)` term divide by zero, latching NaN into the HP/LP filter state.
 
+### 2.12 `SpectralFilter<1280>` does not compile
+
+`src/spectral/spectral_filter.h:46-48`. `FFT_SIZE = 2 * FIR_LENGTH`, and the default
+template argument is `FIR_LENGTH = 1280` — taken straight from `VX_filter.m:17-18`
+(`s_FIR = 1280; s_win = 2*s_FIR`). That makes `FFT_SIZE = 2560`, which is not a power of
+two, so `fft_handler.h:80` fires:
+
+```
+error: static assertion failed: FFT size must be power of 2
+```
+
+`VERIFIED`: instantiating `SpectralFilter<1280>` — the default, and the size the header's
+own usage example passes — is a hard compile error. The module is only instantiable at
+power-of-two `FIR_LENGTH`, i.e. never at the DAFX reference size. Nothing in the test
+suite instantiates it at the default, which is why this survived.
+
+### 2.13 Spectral effects: the DSP cores are right, the buffering is not
+
+This is the clearest pattern in the whole audit. The low-level maths is sound and the
+wrappers around it are not.
+
+**Correct and measured:** the FFT (`fft_handler.h`) agrees with a double-precision
+reference DFT to float epsilon at N = 8/16/1024, with the `1/N` inverse scaling applied
+exactly once; `princarg.h` is an algebraically equivalent refactor of `princarg.m` using
+`floor` (not `fmod`, so the negative-input sign trap is avoided), worst deviation
+1.3e-05 rad over ±200 rad; `windows.h` implements the **periodic** Hanning that
+`hanningz.m` requires — measured COLA of `w²` is exactly 1.5 at hop N/4 and 3.0 at
+hop N/8.
+
+**Broken above that layer:**
+
+- `Robotization` and `Whisperization` share two identical buffering faults.
+  `input_pos_` is reset to 0 every hop, so only `input_buffer_[0 .. hop-1]` is ever
+  written and the rest of the analysis grain stays permanently zero — 75 % zeros at
+  hop N/4, 87.5 % at the default hop N/8. Separately, the overlap buffer is written
+  modulo `2N` but read modulo `N`, so every grain tail above index N is discarded unread.
+  Proof that the spectral core itself is exact: at hop = N, where neither fault can fire,
+  `Robotization` cross-correlates **1.0000** against a faithful reimplementation of
+  `VX_robot.m`; at hop N/4 it falls to 0.6652. `Whisperization`'s output level *rises* as
+  overlap increases (0.0096 → 0.1056 rms from hop N/8 to N) — the inverse of correct
+  overlap-add behaviour.
+- `SpectralFilter`'s overlap-add is a no-op: `Process()` moves the tail out of
+  `overlap_buffer_` and zeroes it *before* `ProcessBlock()` runs, and `ProcessBlock` then
+  overwrites the destination rather than adding to it. Measured against exact time-domain
+  convolution with the class's own FIR, the per-sample difference spikes 35× at every
+  index where `n mod FIR_LENGTH == 0` — a click at the block rate. Its FIR also uses
+  `exp(+damping·n)` where `VX_filter.m:32` has `alpha = -0.002`, so the impulse response
+  **grows** (|h| 0 → 7.15 over 1024 taps) instead of decaying.
+- `PhaseVocoder` transcribes the phase propagation correctly — ω uses the analysis hop,
+  the bin index has no off-by-one, and the ratio multiplies the whole `delta_phi` — but
+  applies the **reciprocal** stretch ratio at `phase_vocoder.h:256`
+  (`tstretch = 1.0f / pitch_ratio_` where `VX_pitch_pv.m:22` has `n2/n1`). Measured pitch
+  error up to **105 cents**; changing that one expression makes every upward ratio exact
+  to ≤ 0.05 Hz. Two further faults: each grain's first `HOP_SIZE` samples are emitted
+  twice (gain sweeps 1.5 → 1.74 with period H, i.e. ±0.7 dB AM at `fs/H`), and
+  `grain_length_` is clamped to `FFT_SIZE`, which makes the resampler an identity map for
+  every ratio < 1 — the entire documented 0.5–1.0 downward range does nothing.
+- None of the four normalises the overlap-add gain. The MATLAB scripts peak-normalise
+  offline, which has no real-time equivalent; the analytic factor is `(3/8)·(N/H)`.
+
+Two corrections to the brief this audit issued to itself, caught against the files:
+`VX_robot.m:35` has **one** fftshift (output only), not two, and the C++ matches it;
+`VX_filter.m` has no dB-domain spectral-envelope step — it is plain FFT overlap-add FIR
+convolution.
+
+### 2.14 Frame-burst CPU makes the spectral family non-real-time as written
+
+`UNVERIFIED` on target, `DERIVED` from the code: each of the four runs an entire frame —
+forward FFT, inverse FFT, N `sqrt`, N `atan2`, and for the phase vocoder 2N `cos`/`sin` —
+inside a single `Process()` call, i.e. inside one audio block. At N = 2048 that far
+exceeds a 48-sample block's budget on a Cortex-M7. `PhaseVocoder` also holds roughly
+150 KB per instance at N = 2048 and puts 8–16 KB frames on the callback stack. The work
+needs amortising across hops before any of this runs on a Daisy.
+
 ---
 
 ## 3. Verified-correct modules
@@ -312,6 +386,18 @@ These were compared line by line and, where noted, numerically:
   accumulator.
 - **`EnvelopeFollower`** — canonical one-pole; consistent with the complementary form
   used inside `CompressorExpander`.
+- **`FFTHandler`** — `VERIFIED` against a double-precision reference DFT at N = 8, 16 and
+  1024: forward, inverse and round-trip all agree to float epsilon, with the `1/N` inverse
+  scaling applied exactly once. Correct twiddle sign and bit-reversal.
+- **`princarg`** — `VERIFIED` equivalent to `princarg.m`; uses `floor`, avoiding the
+  `fmod` sign trap. Worst deviation 1.3e-05 rad over ±200 rad.
+- **`Windows::Hanning`** — the **periodic** form `hanningz.m` requires, not MATLAB's
+  symmetric `hann`. `VERIFIED` COLA of `w²`: exactly 1.5 at hop N/4, 3.0 at hop N/8.
+  (The in-file comment calls it "symmetric"; the comment is wrong, the code is right.)
+- **`CrosstalkCanceller`** matrix algebra — the 2×2 complex `inv(CᴴC+βI)Cᴴ` and the
+  ipsi/contra channel routing both check out term by term. No channel swap.
+- **`Whisperization`** phase/magnitude handling and **`Robotization`** spectral core —
+  both exact; see 2.13 for the buffering that defeats them.
 
 ---
 
