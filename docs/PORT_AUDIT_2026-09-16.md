@@ -42,7 +42,7 @@ comments six of them out and never lists the other three:
 | `test_sola.cpp` | commented, no reason given | 2.16 — does not implement SOLA |
 | `test_yin.cpp` | commented, `# TODO: Add M_PI include` | 2.17 — streaming mode broken |
 | `test_fdn_reverb.cpp` | commented, no reason given | 4.3 — core bit-exact, config is not |
-| `test_xcorr.cpp` | commented, `# TODO: Add M_PI include` | normalisation differs |
+| `test_xcorr.cpp` | commented, `# TODO: Add M_PI include` | 2.20 — biased toward small lags |
 | `test_envelopefollower.cpp` | commented, `# TODO: Add M_PI include` | correct |
 | `test_universal_comb.cpp` | never listed | 2.5 — `SetAllpass` is an identity |
 | `test_compressor_expander.cpp` | never listed | 2.10 — attack/release inverted vs reference |
@@ -93,7 +93,7 @@ the shipped C++ end to end; in 2.10 (`CompressorExpander`) the coefficient misma
 2.11 (`Tube` normalisation) and 2.14 (frame-burst CPU) are `DERIVED` from the code. Read
 the label on each claim, not this heading.
 
-### 2.1 `NoiseGate` — three independent CRITICAL defects; ships as a pass-through
+### 2.1 `NoiseGate` — three CRITICAL logic defects plus a detector mismatch; ships as a pass-through
 
 `src/dynamics/noisegate.cpp:48-95` vs `M_files_chap04/noisegt.m:32-59`.
 
@@ -131,8 +131,20 @@ MATLAB's `else` inside the below-threshold branch sets `g(i)=1` — the signal s
 until the hold time expires. C++ `noisegate.cpp:69` sets `gate_gain_ = 0.0f`. Hold time
 has the opposite of its documented effect.
 
-Fixing (a) alone makes the module worse than it is today. All three must be fixed
-together. `PROPOSED`
+**(d) The envelope detector is one pole where the reference has two.** `DERIVED`
+
+`noisegt.m:29` is `filter([(1-a)^2], [1 -2a a^2], abs(x))` — the denominator factorises as
+`(1 - a·z⁻¹)²`, a **cascaded two-pole** detector with a repeated real pole, i.e. critically
+damped. `noisegate.cpp:45` is a single pole: `envelope_ = alpha_*envelope_ + (1-alpha_)*abs_in`.
+The in-file comment calls it "first-order lowpass", so the simplification is disclosed —
+but it changes the envelope's attack curvature, and therefore *when* the threshold is
+crossed and when the hold window starts, for any transient or level-varying input.
+
+Fixing (a) alone makes the module worse than it is today; fixing (a)–(c) makes it a
+working gate but not this reference's gate. An earlier revision said "all three must be
+fixed together" and stopped there, implying that was the complete repair. It is not — the
+detector topology is a fourth difference and belongs in the plan. Found by the Codex
+review on PR #9. `PROPOSED`
 
 ### 2.2 `WahWah` — no sweep, and the poles sit on the unit circle
 
@@ -667,6 +679,39 @@ The book's coefficients are unreachable through the public API: `a1_` is a dead 
 no setter. `PROPOSED`: expose `b0/b1/a1`, or map `damping` onto a real one-pole whose
 response is monotonic in the parameter, and correct both comments.
 
+### 2.20 `CrossCorrelation::ComputeNormalized` is biased toward small lags
+
+`src/utility/xcorr.h:71-93`. This module was counted defective in the tally on the grounds
+that its normalisation differs from `xcorr_norm.m` — which §4.2 of this same document then
+called defensible, since `xcorr.h` cites Chapter 6 §6.3 (SOLA) and never claims the
+Chapter 9 routine. That was a contradiction, and the Codex review on PR #9 was right to
+flag it. The classification stands, but for a defect of the module's own, not a mismatch
+against a reference it never invoked.
+
+`energy_x` is accumulated once over the **full** `length` (lines 74-77), while both the
+numerator `sum` and `energy_y` are accumulated only over `overlap = length - lag`
+(lines 84-87). The denominator's support therefore does not shrink with the numerator's,
+and the returned value is scaled by `sqrt(overlap/length)` regardless of the true
+correlation.
+
+`VERIFIED` by autocorrelating a perfectly periodic signal with itself (N = 256,
+period = 32), where every multiple of the period must return exactly 1.0:
+
+| lag | returned | true |
+|---:|---:|---:|
+| 0 | 1.000000 | 1.0 |
+| 32 | 0.935414 | 1.0 |
+| 64 | 0.866025 | 1.0 |
+| 96 | 0.790569 | 1.0 |
+| 127 | 0.693314 | — |
+
+The decay is exactly `sqrt((N-lag)/N)`. The docstring at line 63 promises a result "in
+range [-1, 1]" and scale-invariant matching; the peak is attenuated monotonically instead,
+so a lag search using this function is biased toward short lags. That matters precisely
+because the header cites SOLA as its purpose, and a SOLA lag search is what it would be
+used for. `PROPOSED`: accumulate `energy_x` over the same `overlap` window as the
+numerator.
+
 ---
 
 ## 3. Verified-correct modules
@@ -811,31 +856,44 @@ The real attribution problem is narrower and is a genuine cause of defects in th
 - **A chapter-and-section citation cannot be diffed.** Where a `.m` file exists, naming the
   chapter instead of the file means a reviewer cannot mechanically compare the port to its
   source. `xcorr.h` cites Chapter 6 §6.3 (SOLA) while implementing a normalisation that
-  differs from `xcorr_norm.m` in Chapter 9 — defensible, since it never claimed that file,
-  but only discoverable by reading both.
+  differs from `xcorr_norm.m` in Chapter 9. That difference is defensible — it never
+  claimed that file — and is not what makes the module defective; see 2.20 for the defect
+  that is its own.
 - **Where no `.m` exists, the citation should say so.** `tonestack.h` and `wahwah.h` cite
   Chapter 12 sections that have no accompanying script, so no bit-exactness test is
   possible for them at all. Recording that explicitly would have made the gap visible
   instead of implying a reference that cannot be checked.
 
-### 4.3 `FDNReverb` loses its coprime delay lengths at any rate but 44.1 kHz
+### 4.3 `FDNReverb`'s delay scaling does not preserve coprimality
 
 `src/effects/fdn_reverb.h:265-274`. The base delays are the four primes
 `149, 211, 263, 293` that `delaynetwork.m:28` specifies, but `RecalculateDelays()` scales
-them by `sample_rate_/44100` and truncates. `VERIFIED` by arithmetic at the library's own
-documented 48 kHz:
+them by `sample_rate_/44100` and truncates, which preserves nothing about their factors.
+`VERIFIED` across the sample rates a Daisy project might plausibly use:
 
-```
-base 44.1 kHz : 149, 211, 263, 293   (all prime)
-scaled 48 kHz : 162, 229, 286, 318
-gcd(162,286)=2   gcd(162,318)=6   gcd(286,318)=2
-```
+| fs | delays after scaling | pairwise coprime? |
+|---|---|---|
+| 8 kHz | 27, 38, 47, 53 | yes |
+| 12 kHz | 40, 57, 71, 79 | yes |
+| 16 kHz | 54, 76, 95, 106 | **no** — max gcd 19 |
+| 22.05 kHz | 74, 105, 131, 146 | **no** — max gcd 2 |
+| 32 kHz | 108, 153, 190, 212 | **no** — max gcd 9 |
+| 44.1 kHz | 149, 211, 263, 293 | yes (the base case) |
+| **48 kHz** | **162, 229, 286, 318** | **no** — max gcd 6 |
+| 88.2 kHz | 298, 422, 526, 586 | **no** — max gcd 2 |
+| 96 kHz | 324, 459, 572, 637 | **no** — max gcd 27 |
 
-Three of the four become even. Mutually prime lengths are what keep the network's echo
-times from coinciding; once they share factors the modal density collapses onto repeated
-delays and the tail acquires a metallic flutter. `SetDelayScale()` (`fdn_reverb.h:191`) has
-the same effect at any scale factor. `PROPOSED`: snap each scaled length to the nearest
-prime rather than truncating.
+Six of the nine lose it, including the library's own documented 48 kHz, where three of the
+four delays become even. It survives at 8 and 12 kHz by luck, not by construction — an
+earlier revision of this section claimed the property was lost at *every* rate but
+44.1 kHz, which is false and was found by the Codex review on PR #9.
+
+Mutually prime lengths are what keep the network's echo times from coinciding; once they
+share factors the modal density collapses onto repeated delays and the tail acquires a
+metallic flutter. `SetDelayScale()` (`fdn_reverb.h:191`) has the same effect at arbitrary
+scale factors, and there the outcome is not predictable at all. `PROPOSED`: snap each
+scaled length to the nearest prime rather than truncating — which makes the property hold
+by construction instead of by arithmetic accident.
 
 ### 4.4 A note on the reference itself
 
@@ -876,8 +934,9 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 **Then the modules that are non-functional as shipped:**
 
-8. `NoiseGate` — all three defects together (2.1); fixing the condition alone makes it
-   worse.
+8. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
+   makes it worse. Then the two-pole envelope detector (2.1d), without which the timing
+   still will not match the reference.
 9. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
 10. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
@@ -887,20 +946,22 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 12. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
 13. `SOLATimeStretch` — rewrite (2.16).
 14. `CircularBuffer` — clamp and document the valid delay domain (2.6).
-15. `CompressorExpander` — convert the reference's coefficients to time constants
+15. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
+    the numerator (2.20); one loop moved, and it un-biases any lag search built on it.
+16. `CompressorExpander` — convert the reference's coefficients to time constants
     properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
-16. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
+17. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
     and correct the two comments that misdescribe it (2.19).
-17. `FDNReverb` — make the reference configuration reachable: damping off by default
+18. `FDNReverb` — make the reference configuration reachable: damping off by default
     or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
 
 **Then the process problems, which are what let all of the above ship:**
 
-18. Restore the nine excluded test files to the build (1a) and fix what turns red.
-19. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+19. Restore the nine excluded test files to the build (1a) and fix what turns red.
+20. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-20. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+21. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
