@@ -89,7 +89,8 @@ exceptions are labelled and are not measurements. Specifically: in 2.9
 (`CrosstalkCanceller`) the uninitialised HRIR tail is `VERIFIED`, but the degradation from
 the omitted `fftshift` is `DERIVED` from the reference computation and not measured against
 the shipped C++ end to end; in 2.10 (`CompressorExpander`) the coefficient mismatch is
-`VERIFIED` by computation while the `tav_` clobbering is `DERIVED` from the call graph;
+`VERIFIED` by computation and the inverted expansion curve are `VERIFIED`, while the `tav_` clobbering is
+`DERIVED` from the call graph;
 2.11 (`Tube` normalisation) and 2.14 (frame-burst CPU) are `DERIVED` from the code. Read
 the label on each claim, not this heading.
 
@@ -415,7 +416,7 @@ range where the ITD collapses to zero.
 The 2×2 complex matrix algebra and the ipsi/contra channel routing were both checked
 term by term and are **correct** — no channel swap.
 
-### 2.10 `CompressorExpander` — MATLAB's coefficients reused as if they were times
+### 2.10 `CompressorExpander` — wrong coefficients, and an inverted expansion curve
 
 `src/dynamics/compressor_expander.h:52-53, 205-212` vs `M_files_chap04/compexp.m:13-15`.
 
@@ -444,7 +445,34 @@ unit change is what produces the defect: the constants look like they match `com
 and do not. `PROPOSED`: pick time constants that reproduce the reference's coefficients at
 44.1 kHz (≈0.68 ms and ≈6.9 ms) and say in the header that they were converted.
 
-**(b) `SetRmsTime()` is silently overwritten.**
+**(b) The expansion curve is inverted, and the correct slope is unreachable.** `VERIFIED`
+
+`compexp.m:26` computes `G = min([0, CS*(CT-X), ES*(ET-X)])`, where `ES` is supplied by the
+caller and must be **negative** for downward expansion — that is what makes the expander
+term bite *below* `ET` and vanish above it. `compressor_expander.h:91` computes
+`exp_gain = exp_slope_ * (exp_threshold_ - x_db)` with `exp_slope_` defaulting to `+2.0f`
+(`:52`) and **clamped to ≥ 1 in both setters** (`:143`, `:148`), so a negative slope cannot
+be set through the public API at all.
+
+The sign error inverts the curve. Evaluated with `CT = −30, CS = 0.5, ET = −40`:
+
+| input level | `compexp.m` (ES = −2) | C++ (`exp_slope_` = +2) |
+|---:|---:|---:|
+| −10 dB | −10.0 dB (compression) | **−60.0 dB** |
+| −30 dB | 0.0 dB | −20.0 dB |
+| −35 dB | 0.0 dB | −10.0 dB |
+| −50 dB | −20.0 dB (expansion) | **0.0 dB** |
+| −60 dB | −40.0 dB | **0.0 dB** |
+
+So it attenuates loud signals by up to 60 dB and leaves quiet ones untouched — the opposite
+of an expander, and dominant over the compressor term across the normal operating range.
+`PROPOSED`: allow a negative `exp_slope_` (or negate the term) and remove the ≥ 1 clamp,
+which currently forbids the only values that work.
+
+Found by the Codex review on PR #9 — the **first** finding in eight rounds that is about
+the ported DSP rather than about this document's rigour.
+
+**(c) `SetRmsTime()` is silently overwritten.**
 
 `RecalculateCoefficients()` unconditionally executes `tav_ = 1.0f/(sample_rate_*0.01f);`
 and is called from `SetAttackTime()`, `SetReleaseTime()` and `Init()`. Any caller who sets
@@ -1048,24 +1076,39 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    buffering and gain are all that stand between them and a correct port.
 14. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
 15. `SOLATimeStretch` — rewrite (2.16).
-16. `CircularBuffer` **and `DynamicCircularBuffer`** — clamp and document the valid delay
+16. `Tube` — guard `SetDistortion()` against 0, which makes `1/dist_` and every
+    `1-exp(...)` term divide by zero and latches NaN into the HP/LP filter state for the
+    rest of the run; and document the three dropped whole-signal normalisations (2.11).
+17. `YIN` — rotate the streaming analysis frame by `input_pos_` (2.17), with streaming
+    regression coverage. Block mode is correct and usable today; `ProcessSample()` loses
+    73 of 187 frames on a clean tone, so the public streaming path is unusable until this
+    is fixed.
+18. `StereoPan` — either implement the tangent law so `speaker_angle_` reaches the output,
+    or remove `SetSpeakerAngle()` and correct the header's "tangent law" claim (2.8). A
+    public setter that silently does nothing is the worst of the three options.
+19. `CircularBuffer` **and `DynamicCircularBuffer`** — clamp and document the valid delay
     domain in both (2.6).
-17. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
+20. `CrossCorrelation::ComputeNormalized` — accumulate `energy_x` over the same window as
     the numerator (2.20); one loop moved, and it un-biases any lag search built on it.
-18. `CompressorExpander` — convert the reference's coefficients to time constants
-    properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
-19. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
+21. `CompressorExpander` — convert the reference's coefficients to time constants
+    properly (2.10a), un-invert the expansion curve and drop the ≥ 1 slope clamp that
+    forbids the working values (2.10b), and stop `RecalculateCoefficients()` clobbering
+    `tav_` (2.10c).
+22. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
     and correct the two comments that misdescribe it (2.19).
-20. `FDNReverb` — make the reference configuration reachable: damping off by default
-    or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
+23. `FDNReverb` — make the reference configuration reachable: damping off by default or
+    documented, and a gain structure that can express `dry + wet` at unity (§3). Then the
+    delay allocation from 4.3: **distinct** primes rather than truncated scaling, honouring
+    the `MaxDelay` clamp. At 48 kHz the shipped lengths are 162, 229, 286, 318 — three even
+    — so leaving this out keeps the metallic tail the section documents.
 
 **Then the process problems, which are what let all of the above ship:**
 
-21. Restore the nine excluded test files to the build (1a) and fix what turns red.
-22. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+24. Restore the nine excluded test files to the build (1a) and fix what turns red.
+25. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-23. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+26. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
