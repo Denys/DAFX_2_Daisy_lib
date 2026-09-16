@@ -165,16 +165,52 @@ That is the correct real-time adaptation, but it means threshold crossings and o
 differ from the reference for any input whose detected peak is not already unity, and the
 header does not say so.
 
-Fixing (a) alone makes the module worse than it is today. Fixing (a)–(c) makes it a
-working gate. Fixing (d) as well makes its timing match the reference's. (e) cannot be
-fixed in a streaming port at all and should instead be documented as a deliberate
-deviation.
+**(f) There is no startup mute.** `VERIFIED` by reading `noisegt.m:43-44`. Inside the
+below-threshold branch the reference carries a separate startup case before its final
+`else g(i)=1`:
 
-Two earlier revisions of this section each closed with a completeness claim — first "all
-three must be fixed together", then "the detector topology is a fourth difference" — and
-each was wrong in the same way: a sequencing statement doing duty as an exhaustiveness
-statement. Both were found by the Codex review on PR #9. The list above is what the
-comparison supports; it is not asserted to be exhaustive. `PROPOSED`
+```matlab
+elseif ((i<ht) & (lthcnt==i))
+  g(i)=0;
+```
+
+`lthcnt==i` means the signal has been below the lower threshold since the very first
+sample, so during the initial hold window the reference emits **silence**, not unity gain.
+It only holds at 1 during a hold period once the gate has previously opened.
+`noisegate.cpp` has no equivalent, so a signal that starts quiet is passed at full gain
+for the first `hold` samples. Repairing the condition in (a) without this makes the
+difference *more* audible, not less, because the repaired hold branch then reliably emits
+unity where the reference emits zero. Found by the Codex review on PR #9.
+
+**(g) The attack ramp is not the reference's on reopening.** `VERIFIED` by reading
+`noisegt.m:53` against `noisegate.cpp:86`. The reference computes
+
+```matlab
+g(i) = max(uthcnt/att, g(i-1));
+```
+
+— a ramp from **zero**, indexed by how long the signal has been above threshold, floored
+by the previous gain. The port instead increments the gain it already has:
+`gate_gain_ += 1/attack_samples_`. The two agree only when the gate reopens from fully
+closed. Reopening from a partially closed gate at 0.9 with a 48-sample attack, the port
+reaches unity in about five samples while the reference holds near 0.9 until its zero-based
+ramp catches up, around sample 44. This is a gain-envelope difference that survives every
+other repair in this section. Found by the Codex review on PR #9.
+
+Fixing (a) alone makes the module worse than it is today. Fixing (a)–(c) makes it a
+working gate. (d), (f) and (g) are each independently required before the port's *timing
+and gain envelope* match the reference's: the detector shapes when the threshold is
+crossed, the startup case decides what the first hold window emits, and the attack
+expression decides the reopening trajectory. (e) cannot be fixed in a streaming port at
+all and should instead be documented as a deliberate deviation.
+
+**Three** earlier revisions of this section each closed with a completeness claim — "all
+three must be fixed together", then "the detector topology is a fourth difference", then
+"fixing (d) as well makes its timing match the reference's" — and each was wrong in the
+same way: a sequencing statement doing duty as an exhaustiveness statement. All three were
+found by the Codex review on PR #9, the third of them after this very paragraph had been
+rewritten to warn against the first two. The list above is what the comparison supports; it
+is not asserted to be exhaustive. `PROPOSED`
 
 ### 2.2 `WahWah` — no sweep, and the poles sit on the unit circle
 
@@ -849,6 +885,16 @@ tone only **114 of 187 frames** come back voiced, with five frames reporting `f0
 Block mode on the same signal is exact. `Process()` is usable as-is; `ProcessSample()` is
 not.
 
+**Rotating the ring is necessary but not sufficient.** `VERIFIED` by reading.
+`ProcessSample()` runs `AnalyzeFrame()` as soon as `hop_size_` samples have arrived —
+`YinLen/2` = 512 at the defaults (`yin.h:73, 148`) — while `ComputeDifferenceFunction()`
+consumes `YinLen + tau_max_` = 1024 + 600 = **1624** samples. After the first hop only 512
+of those are real signal; the remaining 1112 are the zeros `Init()` left. Rotating by
+`input_pos_` fixes *where* the frame starts and does nothing about *how much of it exists*,
+so the first three analyses would still be dominated by initialisation zeros. The repair
+therefore needs two parts: defer any estimate until the ring holds a complete analysis
+span, and only then index it chronologically. Found by the Codex review on PR #9.
+
 ### 2.18 `princarg` differs from the reference by 2π at the wrap boundary
 
 `src/utility/princarg.h:44` vs `M_files_chap07/princarg.m`.
@@ -1196,6 +1242,25 @@ they are 5, 7, 11, 11. Coincident delays are worse than shared factors, since tw
 then contribute identical echo times. The allocation must also respect the `MaxDelay`
 clamp at `fdn_reverb.h:271`.
 
+**And it must not be applied to `SetDelays()`.** `VERIFIED` by reading
+`fdn_reverb.h:221-232, 265-274`. That setter documents its four arguments as *"Delay
+lengths in samples"*, but it stores them into `base_delays_` and immediately calls
+`RecalculateDelays()`, which multiplies each by `sample_rate_/44100 · delay_scale_`. So a
+caller asking for the reference's own coprime set at 48 kHz does not get it:
+
+```
+SetDelays(149, 211, 263, 293)  at 48 kHz, delay_scale_ = 1
+  -> 162, 229, 286, 318
+```
+
+The documented contract is already broken before any prime allocation exists. Running the
+proposed snapping in the same routine would break it further, silently replacing
+caller-supplied lengths a second time. `PROPOSED`: keep the two paths apart — apply the
+automatic distinct-prime allocation only to the internally derived defaults, and either
+honour `SetDelays()`'s arguments as the literal sample counts it documents or change the
+header to say that they are a base scaled by rate and `delay_scale_`. Found by the Codex
+review on PR #9.
+
 ### 4.4 A note on the reference itself
 
 `M_files_chap04/lpiircomb.m:21` assigns `xhhold` where every other line uses `xhold` — a
@@ -1273,8 +1338,11 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 **Then the modules that are non-functional as shipped:**
 
 11. `NoiseGate` — the three logic defects together (2.1a-c); fixing the condition alone
-   makes it worse. Then the two-pole envelope detector (2.1d), without which the timing
-   still will not match the reference. Then document the two whole-signal normalisations
+   makes it worse. Then the startup mute (2.1f), which the repaired hold branch makes
+   *more* audible by reliably emitting unity where the reference emits silence; the
+   two-pole envelope detector (2.1d); and the attack expression (2.1g), which must be the
+   reference's zero-based ramp floored by the previous gain rather than an increment on
+   the current one. None of those three is implied by the others. Then document the two whole-signal normalisations
    the streaming port cannot reproduce (2.1e): `noisegt.m` scales both the envelope and the
    output by peaks taken over the entire input, so even a fully repaired gate crosses its
    thresholds at different levels and emits a different gain for any signal whose peak is
@@ -1293,10 +1361,13 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 17. `Tube` — guard `SetDistortion()` against 0, which makes `1/dist_` and every
     `1-exp(...)` term divide by zero and latches NaN into the HP/LP filter state for the
     rest of the run; and document the three dropped whole-signal normalisations (2.11).
-18. `YIN` — rotate the streaming analysis frame by `input_pos_` (2.17), with streaming
-    regression coverage. Block mode is correct and usable today; `ProcessSample()` loses
-    73 of 187 frames on a clean tone, so the public streaming path is unusable until this
-    is fixed.
+18. `YIN` — make the streaming path analyse a complete, chronologically ordered frame
+    (2.17), with streaming regression coverage. Two parts, and the second is not implied
+    by the first: defer any estimate until the ring holds the full `YinLen + tau_max_`
+    span — 1624 samples, against the 512 that have arrived when the first analysis
+    currently fires — and only then rotate by `input_pos_`. Block mode is correct and
+    usable today; `ProcessSample()` loses 73 of 187 frames on a clean tone, so the public
+    streaming path is unusable until both are fixed.
 19. `StereoPan` — either implement the tangent law so `speaker_angle_` reaches the output,
     or remove `SetSpeakerAngle()` and correct the header's "tangent law" claim (2.8). A
     public setter that silently does nothing is the worst of the three options.
@@ -1317,7 +1388,11 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 24. `FDNReverb` — make the reference configuration reachable: damping off by default or
     documented, and a gain structure that can express `dry + wet` at unity (§3). Then the
     delay allocation from 4.3: **distinct** primes rather than truncated scaling, honouring
-    the `MaxDelay` clamp. At 48 kHz the shipped lengths are 162, 229, 286, 318 — three even
+    the `MaxDelay` clamp — applied to the internally derived defaults only. `SetDelays()`
+    documents its arguments as sample counts and already rescales them
+    (`SetDelays(149,211,263,293)` becomes `162,229,286,318` at 48 kHz); running the
+    allocation there too would overwrite caller-supplied lengths a second time, so that
+    path needs either its documented contract honoured or its header corrected. At 48 kHz the shipped lengths are 162, 229, 286, 318 — three even
     — so leaving this out keeps the metallic tail the section documents.
 
 **Then the process problems, which are what let all of the above ship:**
