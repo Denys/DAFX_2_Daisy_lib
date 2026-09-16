@@ -62,8 +62,23 @@ response, or a sample stream against a `.m` file.
 **(c) `SpectralFilter` is never instantiated at its default size**, which is why 2.12
 (a hard compile error at `SpectralFilter<1280>`) survived.
 
-Consequence: **every defect in section 2 below is invisible to the current suite**, and a
-green run carries no information about correctness.
+**(d) CI never runs the suite, and the one job that would is allowed to fail.**
+`.github/workflows/build.yml` builds only the `dafx_daisysp` and `pedal_harness_tests`
+targets on Linux, Windows and macOS — `unit_tests` is not among them, and neither is
+`examples/`. The sole job that configures the full aggregate and runs `ctest` over it,
+`legacy-regression`, is marked **`continue-on-error: true`** (line 90), so it can fail
+without turning the check red. The workflow header states the intent plainly: *"The
+broader legacy aggregate suite remains tracked separately until its API debt is
+repaired."*
+
+Because the library target is built from `src/*.cpp` only, and the defective spectral
+modules are header-only templates instantiated exclusively by tests, the green Linux
+build does not compile them at all. That is why 4.1 below — three `examples/` files
+calling methods that do not exist — has been able to persist.
+
+Consequence: **every defect in section 2 below is invisible to the current suite**, a
+green run carries no information about correctness, and a red one would not turn CI red
+either.
 
 ---
 
@@ -616,8 +631,9 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 **Then the process problems, which are what let all of the above ship:**
 
 13. Restore the nine excluded test files to the build (1a) and fix what turns red.
-14. Fix the GCC build (4.1) so the suite can run in CI on the toolchain family that
-    actually matters.
+14. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+    `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
+    amount of test-writing changes what CI reports.
 15. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
