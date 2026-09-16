@@ -263,7 +263,18 @@ ReadInterpolated(0.5) = 4.500   <- blends the oldest sample with the newest
 The valid domain is `[1, size−1]`, not `[0, size−1]`. `ReadInterpolated` clamps its lower
 bound to `0.0f` (`circularbuffer.h:86-87`), so it admits the broken region; any modulated
 delay swept toward zero (flanger, chorus) crosses it and produces full-amplitude garbage
-rather than a bypass. `PROPOSED`: clamp the lower bound to `1.0f` and document the domain.
+rather than a bypass.
+
+**`DynamicCircularBuffer` in the same header carries both defects identically.** Its
+`Read()` (`circularbuffer.h:202-208`) uses the same `(write_ptr_ + size_ - delay_samples)
+% size_` formula with the same off-by-one, and its `ReadInterpolated()`
+(`circularbuffer.h:210-214`) clamps low to `0.0f` in the same way. It is a separate public
+class, so a maintainer working only from the citation above would fix the fixed-size
+template and leave the dynamic one returning the oldest sample at delay zero. Found by the
+Codex review on PR #9; `DERIVED` by reading, since the code is line-for-line the same as
+the version measured above.
+
+`PROPOSED`: clamp the lower bound to `1.0f` and document the domain — **in both classes**.
 
 ### 2.7 `SimpleHRIR` — the ITD carries no left/right information
 
@@ -496,8 +507,15 @@ hop N/8.
   error up to **105 cents**; changing that one expression makes every upward ratio exact
   to ≤ 0.05 Hz. Two further faults: each grain's first `HOP_SIZE` samples are emitted
   twice (gain sweeps 1.5 → 1.74 with period H, i.e. ±0.7 dB AM at `fs/H`), and
-  `grain_length_` is clamped to `FFT_SIZE`, which makes the resampler an identity map for
-  every ratio < 1 — the entire documented 0.5–1.0 downward range does nothing.
+  `grain_length_` is clamped to `FFT_SIZE`, which makes the **resampler** an identity map
+  for every ratio < 1, so the grain-length expansion that a downward shift needs never
+  happens. The phase path is still active, though: `tstretch = 1/pitch_ratio_` is 1.25 at
+  ratio 0.8 and is applied to every accumulated phase, so the spectrum does move — in the
+  wrong direction. Measured at ratio 0.80 with a 1 kHz input, target 800 Hz, the output
+  peak is **1062 Hz**. An earlier revision said the downward range "does nothing", which
+  the measurement in this same audit already contradicted; found by the Codex review on
+  PR #9. A repair has to address the disabled length expansion and the still-active phase
+  scaling together, and be validated on hop, phase and resampling jointly.
 - None of the four normalises the overlap-add gain. The MATLAB scripts peak-normalise
   offline, which has no real-time equivalent. The right factor is per implementation, not
   one number for the family: for the windowed, overlapping effects (`Robotization`,
@@ -962,8 +980,11 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 **Memory safety first**, because it corrupts silently on a target with no MMU:
 
-1. `Vibrato` — the `SetWidth` heap overflow (2.15), then the LFO phase and the
-   interpolation taps.
+1. `Vibrato` — all of its memory-safety defects first (2.15): the `SetWidth` heap
+   overflow, the uninitialised `delay_line_` that the destructor reads and may `delete[]`
+   on a never-`Init`-ed instance, and the missing copy/move handling that makes copying an
+   initialised instance a double free. Only then the LFO phase and the interpolation taps,
+   which are correctness rather than safety.
 2. `LPIIRComb` and `UniversalComb` — initialise `delay_frac_` in both constructors and
    both `Init()` bodies (2.21). Four lines, and it closes a NaN-to-`size_t` index on a
    documented public path.
