@@ -41,11 +41,11 @@ comments six of them out and never lists the other three:
 | `test_tonestack.cpp` | commented, `# TODO: Fix SetMid/GetMid API mismatch` | 2.3 — no filter at all |
 | `test_sola.cpp` | commented, no reason given | 2.16 — does not implement SOLA |
 | `test_yin.cpp` | commented, `# TODO: Add M_PI include` | 2.17 — streaming mode broken |
-| `test_fdn_reverb.cpp` | commented, no reason given | core bit-exact |
+| `test_fdn_reverb.cpp` | commented, no reason given | 4.3 — core bit-exact, config is not |
 | `test_xcorr.cpp` | commented, `# TODO: Add M_PI include` | normalisation differs |
 | `test_envelopefollower.cpp` | commented, `# TODO: Add M_PI include` | correct |
 | `test_universal_comb.cpp` | never listed | 2.5 — `SetAllpass` is an identity |
-| `test_compressor_expander.cpp` | never listed | 2.10 — RMS time overwritten |
+| `test_compressor_expander.cpp` | never listed | 2.10 — attack/release inverted vs reference |
 | `test_lp_iir_comb.cpp` | never listed | LP filter is not the book's |
 
 The exclusions correlate with the defects. Four of the nine untested modules are among
@@ -85,11 +85,13 @@ either.
 ## 2. Confirmed defects
 
 Ordered by severity. Most findings here were reproduced by execution and say so; the
-exceptions are labelled and are not measurements. Specifically, 2.9 (`CrosstalkCanceller`)
-establishes the omission and the mechanism but does not measure the shipped C++ end to end;
-2.10 (`CompressorExpander`) is `DERIVED` from the call graph; 2.11 (`Tube` normalisation)
-and 2.14 (frame-burst CPU) are `DERIVED` from the code. Read the label on each, not this
-heading.
+exceptions are labelled and are not measurements. Specifically: in 2.9
+(`CrosstalkCanceller`) the uninitialised HRIR tail is `VERIFIED`, but the degradation from
+the omitted `fftshift` is `DERIVED` from the reference computation and not measured against
+the shipped C++ end to end; in 2.10 (`CompressorExpander`) the coefficient mismatch is
+`VERIFIED` by computation while the `tav_` clobbering is `DERIVED` from the call graph;
+2.11 (`Tube` normalisation) and 2.14 (frame-burst CPU) are `DERIVED` from the code. Read
+the label on each claim, not this heading.
 
 ### 2.1 `NoiseGate` — three independent CRITICAL defects; ships as a pass-through
 
@@ -306,20 +308,72 @@ full block (≈5.3 ms at 48 kHz). `UNVERIFIED` against the shipped C++ end to en
 mechanism and the omission are certain, the exact audible degradation is not measured
 here.
 
-Note this module also consumes `SimpleHRIR`, so defect 2.7 compounds it: the canceller's
-default operating point is ±half the speaker angle, exactly the small-angle range where
-the ITD collapses to zero.
+**The inverse filters are also built from uninitialised memory.** `VERIFIED`, and it bites
+before the missing `fftshift` matters. `ComputeInverseFilters()` declares four
+`float hrir_ll[HRIR_LENGTH]` stack arrays (`crosstalk_canceller.h:192-195`) with
+`HRIR_LENGTH` defaulting to 256, but `SimpleHRIR::Generate()` zeroes only
+`length_ * sizeof(float)` (`simple_hrir.h:62`), and `length_` is `0.003·fs` — 144 samples
+at 48 kHz, 132 at 44.1 kHz. `PadAndFFT` then copies the full `HRIR_LENGTH`
+(`crosstalk_canceller.h:214`).
+
+Filling the buffer with a sentinel before the call and counting what survives:
+
+```
+GetLength() = 144   buffer passed by CrosstalkCanceller<256> = 256
+slots still holding the sentinel after Generate(): 112, first at index 144
+tail the FFT then consumes: -999.0 -999.0 -999.0 -999.0 -999.0 -999.0
+```
+
+112 indeterminate floats enter the FFT of each of the four HRIR paths, so the inverse
+filters — and therefore the cancellation — are nondeterministic run to run. Fixing the
+`fftshift` alone would leave this in place. `PROPOSED`: zero the whole caller-supplied
+buffer, or have `Generate()` take and honour a capacity. `Generate()`'s own doc comment
+only promises `GetLength()` samples, so the caller is the party at fault — but the
+mismatch is invisible at the call site.
+
+Note this module also consumes `SimpleHRIR`, so defect 2.7 compounds it as well: the
+canceller's default operating point is ±half the speaker angle, exactly the small-angle
+range where the ITD collapses to zero.
 
 The 2×2 complex matrix algebra and the ipsi/contra channel routing were both checked
 term by term and are **correct** — no channel swap.
 
-### 2.10 `CompressorExpander::SetRmsTime()` is silently overwritten
+### 2.10 `CompressorExpander` — MATLAB's coefficients reused as if they were times
 
-`src/dynamics/compressor_expander.h:205-212`. `RecalculateCoefficients()` unconditionally
-executes `tav_ = 1.0f/(sample_rate_*0.01f);` and is called from `SetAttackTime()`,
-`SetReleaseTime()` and `Init()`. Any caller who sets the RMS window and *then* touches
-attack or release silently loses it, reverting to a hard-coded ~10 ms. Order-dependent
-and invisible. `UNVERIFIED` by execution; `DERIVED` from the call graph.
+`src/dynamics/compressor_expander.h:52-53, 205-212` vs `M_files_chap04/compexp.m:13-15`.
+
+**(a) The defaults do not match the reference, and invert attack against release.**
+
+`compexp.m` declares `tav = 0.01`, `at = 0.03`, `rt = 0.003` as **raw one-pole
+coefficients** applied per sample. The C++ constructor takes the same three literals —
+`attack_time_(0.03f)`, `release_time_(0.003f)`, `tav_(0.01f)` — and `RecalculateCoefficients()`
+reinterprets the first two as **seconds**, converting with `1-exp(-1/(t·fs))`. `VERIFIED`
+by computing both at 48 kHz:
+
+| | `compexp.m` | C++ | ratio |
+|---|---:|---:|---:|
+| attack coeff | 0.030000 | 0.000694 | 43.2× |
+| release coeff | 0.003000 | 0.006920 | 0.4× |
+| `tav` | 0.010000 | 0.002083 | 4.8× |
+
+As equivalent time constants: the reference attacks in **0.68 ms** and releases in
+**6.93 ms**; the port attacks in **30 ms** and releases in **3 ms**. The port's attack is
+ten times *slower* than its release — the reference's relationship inverted, not merely
+rescaled. A compressor with that shape lets transients through and then pumps.
+
+Interpreting the numbers as times is the right instinct, since raw coefficients are
+sample-rate dependent and do not port. Carrying the reference's literal values across the
+unit change is what produces the defect: the constants look like they match `compexp.m`
+and do not. `PROPOSED`: pick time constants that reproduce the reference's coefficients at
+44.1 kHz (≈0.68 ms and ≈6.9 ms) and say in the header that they were converted.
+
+**(b) `SetRmsTime()` is silently overwritten.**
+
+`RecalculateCoefficients()` unconditionally executes `tav_ = 1.0f/(sample_rate_*0.01f);`
+and is called from `SetAttackTime()`, `SetReleaseTime()` and `Init()`. Any caller who sets
+the RMS window and *then* touches attack or release silently loses it. The same line also
+makes the constructor's `tav_(0.01f)` dead — it is the one default that did match the
+reference, and it never survives `Init()`. `DERIVED` from the call graph.
 
 ### 2.11 Undocumented real-time deviations in `Tube`
 
@@ -582,19 +636,23 @@ finding above MINOR:
 | Group | Clean | Defective | Modules |
 |---|---:|---:|---|
 | Filters | 2 | 1 | ✔ LowShelving, PeakFilter — ✘ HighShelving |
-| Delay / comb / reverb | 1 | 3 | ✔ FDNReverb — ✘ UniversalComb, LPIIRComb, CircularBuffer |
+| Delay / comb / reverb | 0 | 4 | ✘ FDNReverb, UniversalComb, LPIIRComb, CircularBuffer |
 | Dynamics / nonlinear | 3 | 4 | ✔ Tube, RingMod, EnvelopeFollower — ✘ NoiseGate, WahWah, ToneStack, CompressorExpander |
 | Spatial | 0 | 3 | ✘ StereoPan, CrosstalkCanceller, SimpleHRIR |
 | Spectral | 0 | 4 | ✘ Robotization, Whisperization, SpectralFilter, PhaseVocoder |
 | Time-domain pitch/time | 0 | 3 | ✘ SOLATimeStretch, Vibrato, YIN |
 | Low-level utility | 2 | 2 | ✔ FFTHandler, Windows — ✘ princarg, xcorr |
-| **Total** | **8** | **20** | |
+| **Total** | **7** | **21** | |
 
-Four of the twenty are defective only in a preset, a parameter path, one mode or a single
-boundary value (`UniversalComb`, `CompressorExpander`, `YIN`, `princarg`) and have a
-correct core. `FDNReverb` and `Tube` are listed clean on their recirculating core and
-waveshaper respectively, but neither reproduces the reference as shipped — see 2.11, 4.3
-and the `FDNReverb` entry above.
+Four of the twenty-one are defective only in a preset, one mode or a single boundary value
+(`UniversalComb`, `YIN`, `princarg`) or in configuration rather than structure
+(`FDNReverb`) and have a correct core. `Tube` is listed clean on its waveshaper, which is
+faithful, but does not reproduce the reference as shipped either — see 2.11.
+
+`FDNReverb` moved out of the clean column on review: its recirculating core is bit-exact,
+but the stated criterion here is that the *audio path* matches the reference, and as
+shipped it cannot — see the entry in §3 and 4.3. A caveat paragraph was not a substitute
+for counting it correctly.
 
 The shape of the result matters more than the count: **the low-level layer is sounder than
 the wrappers around it.** Every FFT, window and matrix-algebra check passed, and the one
@@ -699,44 +757,51 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 1. `Vibrato` — the `SetWidth` heap overflow (2.15), then the LFO phase and the
    interpolation taps.
+2. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
+   currently reach the FFT, so the module's output is nondeterministic and every other fix
+   to it is unmeasurable until this is done.
 
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
-2. `HighShelving:43` — the cut coefficient (2.4).
-3. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
-4. `PhaseVocoder:256` — `tstretch = pitch_ratio_` (2.13); measured to make every upward
+3. `HighShelving:43` — the cut coefficient (2.4).
+4. `UniversalComb::SetAllpass` — `FB=-g, FF=1, BL=g` (2.5).
+5. `PhaseVocoder:256` — `tstretch = pitch_ratio_` (2.13); measured to make every upward
    ratio exact.
-5. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
+6. `SpectralFilter:48` — the default template argument cannot be instantiated (2.12).
    Nothing else in that file can be tested until this is resolved.
-6. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
+7. `princarg.h:44` — pin the wrap boundary (2.18), and make `TWOPI` and `M_PI` the same
    precision while there. Cheap, and it removes a 2π trap from the one function every
    spectral effect depends on.
 
 **Then the modules that are non-functional as shipped:**
 
-7. `NoiseGate` — all three defects together (2.1); fixing the condition alone makes it
+8. `NoiseGate` — all three defects together (2.1); fixing the condition alone makes it
    worse.
-8. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
-9. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
+9. `WahWah` — a real LFO accumulator and a normalised denominator (2.2).
+10. `SimpleHRIR` — use `theta_shifted` for the group delay (2.7). This also unblocks
    `CrosstalkCanceller`, which needs its omitted `fftshift` (2.9).
-10. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
+11. The shared analysis/synthesis buffering in `Robotization` and `Whisperization` (2.13).
    The spectral cores are already exact, so this is the only thing between them and a
    correct port.
-11. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
-12. `SOLATimeStretch` — rewrite (2.16).
-13. `CircularBuffer` — clamp and document the valid delay domain (2.6).
+12. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
+13. `SOLATimeStretch` — rewrite (2.16).
+14. `CircularBuffer` — clamp and document the valid delay domain (2.6).
 
 **Then the process problems, which are what let all of the above ship:**
 
-14. Restore the nine excluded test files to the build (1a) and fix what turns red.
-15. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+15. Restore the nine excluded test files to the build (1a) and fix what turns red.
+16. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-16. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+17. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
     this audit are a working template.
+18. `CompressorExpander` — convert the reference's coefficients to time constants
+    properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
+19. `FDNReverb` — make the reference configuration reachable: damping off by default
+    or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
 
 ### Defects in the MATLAB references themselves
 
