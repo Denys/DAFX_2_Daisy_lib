@@ -46,7 +46,7 @@ comments six of them out and never lists the other three:
 | `test_envelopefollower.cpp` | commented, `# TODO: Add M_PI include` | correct |
 | `test_universal_comb.cpp` | never listed | 2.5 — `SetAllpass` is an identity |
 | `test_compressor_expander.cpp` | never listed | 2.10 — attack/release inverted vs reference |
-| `test_lp_iir_comb.cpp` | never listed | LP filter is not the book's |
+| `test_lp_iir_comb.cpp` | never listed | 2.19 — loop filter has no pole |
 
 The exclusions correlate with the defects. Four of the nine untested modules are among
 the worst in this audit. `test_sola.cpp:95` asserts `EXPECT_GT(slow_len, unity_len)` at
@@ -302,11 +302,36 @@ called anywhere in this file.
 The regularised inverse `inv(CᴴC+βI)Cᴴ` is acausal; without the shift its dominant taps
 wrap to the top of the buffer. Simulation of the reference computation at θ = ±5°,
 FFT_SIZE = 512 puts ~80 % of the filter energy in the second half of the buffer with the
-peak tap near index 502. The overlap-add at lines 371-376 sends everything above
-`HRIR_LENGTH` into the *next* block, so the dominant cancellation tap is displaced by a
-full block (≈5.3 ms at 48 kHz). `UNVERIFIED` against the shipped C++ end to end — the
-mechanism and the omission are certain, the exact audible degradation is not measured
-here.
+peak tap near index 502.
+
+**The overlap-add is also broken, and this changes the diagnosis above.** `DERIVED` by
+tracing the two functions across two blocks.
+
+`Process()` emits `left_out_buffer_[i] + left_overlap_[i]` and then clears **both**
+(`crosstalk_canceller.h:125-132`). Over one block of `HRIR_LENGTH` calls it therefore
+zeroes every element of `left_overlap_` before `ProcessBlock()` next runs. So when
+`ProcessBlock()` executes `left_out_buffer_[i] = left_time[i] + left_overlap_[i]`
+(`crosstalk_canceller.h:371`), the addend is always zero:
+
+```
+block k   ProcessBlock: out_buffer[i] = time_k[i]          overlap[i] = time_k[i+N]
+block k+1 Process:      output[i] = out_buffer[i] + overlap[i]
+                                  = time_k[i] + time_k[i+N]     <- both halves, same position
+                        then clears overlap[i]
+block k+1 ProcessBlock: out_buffer[i] = time_{k+1}[i] + 0        <- tail already consumed
+```
+
+The second half of each IFFT is summed onto the **first half of the same transform**, at
+the same output position — not carried into the next block. That is circular convolution:
+the fold the `2·HRIR_LENGTH` zero-padding exists to prevent. It corrupts every nonzero
+inverse filter on its own.
+
+An earlier revision of this document said the dominant tap was "displaced by a full block
+(≈5.3 ms)". That was wrong, and the error was in reading the scheduling rather than the
+maths: the tail is folded, not delayed, so a timing displacement is not the failure mode
+and the `fftshift` diagnosis cannot be stated in those terms. Found by the Codex review on
+PR #9. The missing `fftshift` remains a real omission, but which taps land where cannot be
+assessed until the overlap-add is fixed. `UNVERIFIED` end to end against the shipped C++.
 
 **The inverse filters are also built from uninitialised memory.** `VERIFIED`, and it bites
 before the missing `fftshift` matters. `ComputeInverseFilters()` declares four
@@ -447,7 +472,16 @@ hop N/8.
   `grain_length_` is clamped to `FFT_SIZE`, which makes the resampler an identity map for
   every ratio < 1 — the entire documented 0.5–1.0 downward range does nothing.
 - None of the four normalises the overlap-add gain. The MATLAB scripts peak-normalise
-  offline, which has no real-time equivalent; the analytic factor is `(3/8)·(N/H)`.
+  offline, which has no real-time equivalent. The right factor is per implementation, not
+  one number for the family: for the windowed, overlapping effects (`Robotization`,
+  `Whisperization`) the squared-Hann overlap sum is `(3/8)·(N/H)` — measured exactly 1.5 at
+  hop N/4 and 3.0 at hop N/8. It does **not** apply to `SpectralFilter`, which uses
+  non-overlapping `FIR_LENGTH` blocks with no analysis or synthesis window (its Hanning
+  call at `spectral_filter.h:122` shapes the FIR taps at design time, not the input
+  frames); once its overlap-add is fixed, standard FFT convolution already has unity gain
+  and applying the factor would make it wrong. `PhaseVocoder`'s grain length is
+  ratio-dependent, so its factor varies with the pitch ratio. An earlier revision
+  prescribed the single factor for all four; found by the Codex review on PR #9.
 
 Two corrections to the brief this audit issued to itself, caught against the files:
 `VX_robot.m:35` has **one** fftshift (output only), not two, and the C++ matches it;
@@ -456,12 +490,28 @@ convolution.
 
 ### 2.14 Frame-burst CPU makes the spectral family non-real-time as written
 
-`UNVERIFIED` on target, `DERIVED` from the code: each of the four runs an entire frame —
-forward FFT, inverse FFT, N `sqrt`, N `atan2`, and for the phase vocoder 2N `cos`/`sin` —
-inside a single `Process()` call, i.e. inside one audio block. At N = 2048 that far
-exceeds a 48-sample block's budget on a Cortex-M7. `PhaseVocoder` also holds roughly
-150 KB per instance at N = 2048 and puts 8–16 KB frames on the callback stack. The work
-needs amortising across hops before any of this runs on a Daisy.
+`UNVERIFIED` on target — nothing here was profiled on a Daisy, and the verdict is a
+structural one about *when* the work happens, not a measured budget.
+
+What all four share, `DERIVED` from the code: the entire frame is processed inside a single
+`Process()` call — the one where the hop counter wraps — rather than amortised across the
+hop. The per-frame work differs sharply between them, and an earlier revision of this
+document attributed the phase vocoder's transcendental load to all four. Counted from the
+source:
+
+| module | forward+inverse FFT | `sqrt` | `atan2` | `cos`/`sin` |
+|---|:-:|:-:|:-:|:-:|
+| `Robotization` | yes | — | — | — |
+| `Whisperization` | yes | — | — | per bin |
+| `SpectralFilter` | yes | — | — | — (its two `sin` calls are in `SetBandpass`, a control-path function) |
+| `PhaseVocoder` | yes | per bin | per bin | per bin |
+
+So the burst is worst for `PhaseVocoder` by a wide margin and is a pair of transforms for
+`Robotization` and `SpectralFilter`. At N = 2048 even a bare FFT pair in one 48-sample
+callback is a problem on a Cortex-M7, which is why the structural point stands for the
+family — but the cost is not uniform and the earlier table overstated three of the four.
+Profile before quoting a figure. `PhaseVocoder` also holds roughly 150 KB per instance at
+N = 2048 and puts 8–16 KB frames on the callback stack.
 
 ### 2.15 `Vibrato` — heap overflow reachable from the public API
 
@@ -578,6 +628,45 @@ This supersedes the "equivalent refactor, worst deviation 1.3e-05 rad" claim in 
 revision of this document, which sampled the boundary at a decimal literal rather than at
 the exact float and therefore missed it. Found by the Codex review on PR #9.
 
+### 2.19 `LPIIRComb` — the loop filter is not the book's, and the damping map is non-monotonic
+
+`src/effects/lp_iir_comb.h:220-227` vs `M_files_chap02/lpiircomb.m:11-14`. This module was
+listed as defective in the tally with only a passing phrase and no evidence; that gap was
+found by the Codex review on PR #9 and this section supplies it.
+
+The comb structure itself is a faithful port — the LP is applied to the delayed sample
+before the feedback gain, the one-pole state is updated inside the loop, and the delay line
+stores `y`, all matching `lpiircomb.m:17-24`. The **loop filter** is not.
+
+The reference uses `b_0 = 0.5, b_1 = 0.5, a_1 = 0.7` — a one-pole, one-zero lowpass.
+`RecalculateCoefficients()` hard-codes `a1_ = 0.0f` with the comment "Simple 1-pole LP",
+and derives `b0_ = 1 - damping_`, `b1_ = damping_`. With no pole it is not a one-pole
+filter at all; it is a two-tap FIR. `VERIFIED` by evaluating both:
+
+| | H(DC) | H(Nyquist) |
+|---|---:|---:|
+| `lpiircomb.m` | 0.5882 | 0.0000 |
+| C++, `damping` = 0.0 | 1.0000 | +1.0000 |
+| C++, `damping` = 0.5 | 1.0000 | 0.0000 |
+| C++, `damping` = 1.0 | 1.0000 | −1.0000 |
+
+Two consequences:
+
+- **The decay is far longer than the reference for the same feedback gain.** Loop gain is
+  `g · H_lp`, and the reference's LP contributes 0.588 at DC where the port contributes
+  1.000 — so a `g` chosen from the book gives a much longer tail here. `SetFeedback` clamps
+  to ±0.999 and `max|H_lp| = |b0| + |b1| = 1`, so the stability condition holds, but only
+  marginally and it is undocumented in the header.
+- **`damping` is non-monotonic and its documented sense is wrong.** Maximum HF attenuation
+  is at `damping = 0.5` (null at Nyquist). Above that the attenuation *decreases* and the
+  HF phase inverts; at `damping = 1.0` the filter is unity-gain at every frequency — a pure
+  one-sample delay. The header documents 1.0 as maximum damping, which is exactly the
+  setting that produces none, and which silently lengthens the loop by a sample.
+
+The book's coefficients are unreachable through the public API: `a1_` is a dead member with
+no setter. `PROPOSED`: expose `b0/b1/a1`, or map `damping` onto a real one-pole whose
+response is monotonic in the parameter, and correct both comments.
+
 ---
 
 ## 3. Verified-correct modules
@@ -604,7 +693,9 @@ These were compared line by line and, where noted, numerically:
 - **`CompressorExpander`** core — attack/release selection direction and the lookahead
   topology both match `compexp.m`.
 - **`Tube`** waveshaper — both removable singularities (`x==Q` and the `Q==0`, `x==0`
-  case) are handled; the HP and LP difference equations match `tube.m` exactly.
+  case) are handled; the HP and LP difference equations match `tube.m` exactly. The
+  waveshaper only; the shipped audio path drops the reference's normalisations (2.11), so
+  the module is counted defective.
 - **`RingMod`** — true multiplicative modulation with a correctly wrapped phase
   accumulator.
 - **`EnvelopeFollower`** — canonical one-pole; consistent with the complementary form
@@ -637,22 +728,27 @@ finding above MINOR:
 |---|---:|---:|---|
 | Filters | 2 | 1 | ✔ LowShelving, PeakFilter — ✘ HighShelving |
 | Delay / comb / reverb | 0 | 4 | ✘ FDNReverb, UniversalComb, LPIIRComb, CircularBuffer |
-| Dynamics / nonlinear | 3 | 4 | ✔ Tube, RingMod, EnvelopeFollower — ✘ NoiseGate, WahWah, ToneStack, CompressorExpander |
+| Dynamics / nonlinear | 2 | 5 | ✔ RingMod, EnvelopeFollower — ✘ Tube, NoiseGate, WahWah, ToneStack, CompressorExpander |
 | Spatial | 0 | 3 | ✘ StereoPan, CrosstalkCanceller, SimpleHRIR |
 | Spectral | 0 | 4 | ✘ Robotization, Whisperization, SpectralFilter, PhaseVocoder |
 | Time-domain pitch/time | 0 | 3 | ✘ SOLATimeStretch, Vibrato, YIN |
 | Low-level utility | 2 | 2 | ✔ FFTHandler, Windows — ✘ princarg, xcorr |
-| **Total** | **7** | **21** | |
+| **Total** | **6** | **22** | |
 
-Four of the twenty-one are defective only in a preset, one mode or a single boundary value
-(`UniversalComb`, `YIN`, `princarg`) or in configuration rather than structure
-(`FDNReverb`) and have a correct core. `Tube` is listed clean on its waveshaper, which is
-faithful, but does not reproduce the reference as shipped either — see 2.11.
+Five of the twenty-two are defective only in a preset, one mode or a single boundary value
+(`UniversalComb`, `YIN`, `princarg`), or in configuration rather than structure
+(`FDNReverb`, `Tube`), and have a correct core. That distinction is worth keeping when
+planning work — a wrong preset is a one-line fix, a wrong algorithm is a rewrite — but it
+does not make those modules clean.
 
-`FDNReverb` moved out of the clean column on review: its recirculating core is bit-exact,
-but the stated criterion here is that the *audio path* matches the reference, and as
-shipped it cannot — see the entry in §3 and 4.3. A caveat paragraph was not a substitute
-for counting it correctly.
+`FDNReverb` and `Tube` both moved out of the clean column on review, for the same reason
+and in two successive rounds. Their cores are faithful — `FDNReverb`'s recirculating
+network is bit-exact, `Tube`'s waveshaper handles both removable singularities correctly —
+but the criterion stated above is that the **audio path** matches the reference, and
+neither does as shipped: `FDNReverb`'s damping and convex mix cannot express the
+reference's output (§3, 4.3), and `Tube` drops all three of the reference's signal-dependent
+normalisations (2.11). Recording a caveat under the table while leaving the row unchanged
+is not the same as counting it correctly, and it took an external reviewer to say so twice.
 
 The shape of the result matters more than the count: **the low-level layer is sounder than
 the wrappers around it.** Every FFT, window and matrix-algebra check passed, and the one
@@ -759,7 +855,12 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    interpolation taps.
 2. `CrosstalkCanceller` — zero the full HRIR buffer (2.9). 112 indeterminate floats
    currently reach the FFT, so the module's output is nondeterministic and every other fix
-   to it is unmeasurable until this is done.
+   to it is unmeasurable until this is done. Then fix the overlap-add, which folds each
+   transform's tail onto its own head and so reintroduces the circular convolution the
+   zero-padding exists to prevent; only after both is the missing `fftshift` worth
+   assessing. Then fix the overlap-add, which folds each
+   transform's tail onto its own head and reintroduces circular convolution; only after
+   both is the missing `fftshift` worth assessing.
 
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
@@ -786,22 +887,24 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 12. `ToneStack` — implement filters or rename the class and withdraw the claim (2.3).
 13. `SOLATimeStretch` — rewrite (2.16).
 14. `CircularBuffer` — clamp and document the valid delay domain (2.6).
+15. `CompressorExpander` — convert the reference's coefficients to time constants
+    properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
+16. `LPIIRComb` — give the loop filter a pole, or map `damping` onto one monotonically,
+    and correct the two comments that misdescribe it (2.19).
+17. `FDNReverb` — make the reference configuration reachable: damping off by default
+    or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
 
 **Then the process problems, which are what let all of the above ship:**
 
-15. Restore the nine excluded test files to the build (1a) and fix what turns red.
-16. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
+18. Restore the nine excluded test files to the build (1a) and fix what turns red.
+19. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
     `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
     amount of test-writing changes what CI reports.
-17. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
+20. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
     MATLAB output, and assert agreement to a stated tolerance. The drivers written for
     this audit are a working template.
-18. `CompressorExpander` — convert the reference's coefficients to time constants
-    properly (2.10a) and stop `RecalculateCoefficients()` clobbering `tav_` (2.10b).
-19. `FDNReverb` — make the reference configuration reachable: damping off by default
-    or documented, and a gain structure that can express `dry + wet` at unity (§3, 4.3).
 
 ### Defects in the MATLAB references themselves
 
