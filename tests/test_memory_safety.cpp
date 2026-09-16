@@ -16,6 +16,7 @@
 #include <cmath>
 #include <gtest/gtest.h>
 #include <limits>
+#include <new>
 #include <type_traits>
 
 using namespace daisysp;
@@ -393,4 +394,62 @@ TEST(MemorySafetyCombs, DefaultConstructedCombsHaveAZeroedDelayLine) {
   for (int i = 0; i < 256; ++i) {
     ASSERT_TRUE(std::isfinite(lp.ProcessFractional(0.0f))) << "at " << i;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Third review round on this PR: Init() freed the live buffer before
+// allocating its replacement, so a throwing allocation left a dangling pointer
+// for the destructor to free a second time. Both owning classes had it.
+// ---------------------------------------------------------------------------
+
+// A length whose byte size overflows size_t makes the new-expression throw
+// std::bad_array_new_length before the allocator is called at all, so this
+// injects the failure without replacing the global allocator - which would
+// weaken AddressSanitizer for the rest of the suite - and without an
+// out-of-memory request, whose handling differs under a sanitizer.
+TEST(MemorySafetyBuffers, FailedReinitLeavesTheBufferIntact) {
+  DynamicCircularBuffer<float> buf;
+  buf.Init(4);
+  ASSERT_EQ(buf.GetSize(), 4u);
+
+  constexpr size_t kUnallocatable = static_cast<size_t>(-1);
+  EXPECT_THROW(buf.Init(kUnallocatable), std::bad_alloc);
+
+  // The object must still own exactly what it owned before the failed call.
+  // Pre-fix this reported the requested size - size_ was assigned before the
+  // allocation - and the destructor freed an already-freed buffer.
+  EXPECT_EQ(buf.GetSize(), 4u);
+  buf.Write(1.0f);
+  EXPECT_TRUE(std::isfinite(buf.Read(0)));
+}
+
+// Same class of fault as the non-finite arguments above: an unvalidated float
+// reaching an integer conversion. The delay length is held in an int, and
+// 0.1 * 1e12 is outside its range, so the conversion is undefined before the
+// multiplication overflows:
+//   vibrato.cpp:23: runtime error: 1e+11 is outside the range of
+//       representable values of type 'int'
+//   vibrato.cpp:24: runtime error: signed integer overflow: -2147483648 * 2
+TEST(MemorySafetyNonFinite, VibratoBoundsAnAbsurdSampleRate) {
+  const float rates[] = {1.0e9f, 1.0e12f, 3.4e38f,
+                         std::numeric_limits<float>::max()};
+  for (float rate : rates) {
+    Vibrato v;
+    v.Init(rate);
+    v.SetWidth(Vibrato::kMaxWidthSeconds);
+    for (int i = 0; i < 1024; ++i) {
+      ASSERT_TRUE(std::isfinite(v.Process(0.5f)))
+          << "rate " << rate << " at sample " << i;
+    }
+  }
+}
+
+TEST(MemorySafetyNonFinite, VibratoKeepsOrdinaryAudioRatesExactly) {
+  // The clamp must not disturb any rate a caller would plausibly use.
+  for (float rate : {8000.0f, 44100.0f, 48000.0f, 96000.0f, 192000.0f}) {
+    Vibrato v;
+    v.Init(rate);
+    EXPECT_TRUE(std::isfinite(v.Process(0.5f))) << "rate " << rate;
+  }
+  EXPECT_GT(Vibrato::kMaxSampleRate, 192000.0f);
 }

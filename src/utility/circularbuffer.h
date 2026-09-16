@@ -211,14 +211,20 @@ public:
    * @param size Buffer size in samples; a zero size is clamped to 1
    */
   void Init(size_t size) {
-    if (buffer_ != nullptr)
-      delete[] buffer_;
-
     // A zero size allocates nothing while leaving the object usable, so the
     // first Write() stores through buffer_[0] before it reaches the modulo.
     // That write is out of bounds, and a guard on the modulo alone misses it.
-    size_ = (size == 0) ? 1 : size;
-    buffer_ = new T[size_];
+    const size_t requested = (size == 0) ? 1 : size;
+
+    // Allocate before freeing and before updating size_. Deleting first would
+    // leave buffer_ dangling if the new[] threw - the destructor would then
+    // free it a second time - and assigning size_ first would leave the object
+    // claiming a capacity it does not own. This order leaves the previous
+    // buffer intact and the object consistent when the allocation fails.
+    T *replacement = new T[requested];
+    delete[] buffer_;
+    buffer_ = replacement;
+    size_ = requested;
     write_ptr_ = 0;
     Clear();
   }

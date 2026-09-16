@@ -39,6 +39,13 @@ public:
    *  96 kHz, ~115 kB. */
   static constexpr float kMaxWidthSeconds = 0.1f;
 
+  /** Highest sample rate Init() will honour. Above this the delay-line length
+   *  computed from kMaxWidthSeconds overflows the int it is held in - the
+   *  float-to-int conversion itself is undefined - and the allocation is
+   *  absurd well before that. 768 kHz is the top of the audio range; the
+   *  buffer there is 230402 floats (~922 kB). */
+  static constexpr float kMaxSampleRate = 768000.0f;
+
   Vibrato()
       : sample_rate_(48000.0f), freq_(5.0f), width_(0.005f), delay_samples_(0),
         width_samples_(0), mod_freq_samples_(0.0f), delay_line_size_(2),

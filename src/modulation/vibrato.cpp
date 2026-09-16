@@ -9,9 +9,12 @@ namespace daisysp {
 void Vibrato::Init(float sample_rate) {
   // A non-positive or non-finite rate makes mod_freq_samples_ infinite, and
   // the modulator then feeds a NaN into the integer tap index. Keep the
-  // previous rate instead of arming that path.
+  // previous rate instead of arming that path. An absurdly high rate is a
+  // different fault of the same kind: the delay length below is held in an
+  // int, and converting 0.1 * 1e12 to one is undefined before it overflows.
   if (std::isfinite(sample_rate) && sample_rate > 0.0f) {
-    sample_rate_ = sample_rate;
+    sample_rate_ =
+        (sample_rate > kMaxSampleRate) ? kMaxSampleRate : sample_rate;
   }
   freq_ = 5.0f;
   width_ = 0.005f;
@@ -26,9 +29,15 @@ void Vibrato::Init(float sample_rate) {
   // Release any previous allocation. Init() may legitimately be called more
   // than once - to change sample rate, for instance - and overwriting the
   // pointer would abandon the earlier buffer.
+  //
+  // Allocate before freeing. Deleting first would leave delay_line_ dangling
+  // if the new[] threw, and the destructor would then free it a second time;
+  // on a memory-constrained target that is the likely case, not the exotic
+  // one. This order leaves the object untouched when the allocation fails.
   if (delay_line_capacity_ != capacity) {
+    float *replacement = new float[capacity];
     delete[] delay_line_;
-    delay_line_ = new float[capacity];
+    delay_line_ = replacement;
     delay_line_capacity_ = capacity;
   }
   std::memset(delay_line_, 0, delay_line_capacity_ * sizeof(float));
