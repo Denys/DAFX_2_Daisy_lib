@@ -12,6 +12,7 @@
 #include "modulation/vibrato.h"
 #include "spatial/crosstalk_canceller.h"
 #include "utility/circularbuffer.h"
+#include "utility/xcorr.h"
 
 #include <cmath>
 #include <gtest/gtest.h>
@@ -452,4 +453,36 @@ TEST(MemorySafetyNonFinite, VibratoKeepsOrdinaryAudioRatesExactly) {
     EXPECT_TRUE(std::isfinite(v.Process(0.5f))) << "rate " << rate;
   }
   EXPECT_GT(Vibrato::kMaxSampleRate, 192000.0f);
+}
+
+// ---------------------------------------------------------------------------
+// Review round on PR #9 raised this against the audit's work order, but it is
+// memory safety and so belongs here: CrossCorrelation computed `length - lag`
+// unconditionally. Past lag == length that underflows size_t and both
+// functions walk off the end of the inputs. The public signature documents no
+// upper bound on max_lag.
+//   xcorr.h:52: AddressSanitizer: stack-buffer-overflow, READ of size 4
+// ---------------------------------------------------------------------------
+
+TEST(MemorySafetyXCorr, OversizedLagRangeDoesNotUnderflow) {
+  const float x[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+  const float y[4] = {1.0f, 2.0f, 3.0f, 4.0f};
+  float out[8] = {};
+
+  CrossCorrelation::Compute(x, y, 4, out, 8);
+  for (size_t lag = 0; lag < 8; ++lag) {
+    ASSERT_TRUE(std::isfinite(out[lag])) << "lag " << lag;
+  }
+  // Lags at or beyond the signal length have no overlap and must read zero,
+  // not whatever lies past the end of the arrays.
+  EXPECT_FLOAT_EQ(out[4], 0.0f);
+  EXPECT_FLOAT_EQ(out[7], 0.0f);
+
+  float norm_out[8] = {};
+  CrossCorrelation::ComputeNormalized(x, y, 4, norm_out, 8);
+  for (size_t lag = 0; lag < 8; ++lag) {
+    ASSERT_TRUE(std::isfinite(norm_out[lag])) << "lag " << lag;
+  }
+  EXPECT_FLOAT_EQ(norm_out[4], 0.0f);
+  EXPECT_FLOAT_EQ(norm_out[7], 0.0f);
 }

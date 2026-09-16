@@ -46,7 +46,11 @@ public:
                       float *output, size_t max_lag) {
     for (size_t lag = 0; lag < max_lag; lag++) {
       float sum = 0.0f;
-      size_t overlap = length - lag;
+      // Past lag == length the windows no longer overlap. Computing
+      // `length - lag` unconditionally underflows size_t there, and the inner
+      // loop then walks off the end of both inputs; the public signature
+      // documents no upper bound on max_lag.
+      size_t overlap = (lag < length) ? length - lag : 0;
 
       for (size_t n = 0; n < overlap; n++) {
         sum += x[n] * y[n + lag];
@@ -79,7 +83,8 @@ public:
     for (size_t lag = 0; lag < max_lag; lag++) {
       float sum = 0.0f;
       float energy_y = 0.0f;
-      size_t overlap = length - lag;
+      // Same underflow as Compute() above: no overlap past lag == length.
+      size_t overlap = (lag < length) ? length - lag : 0;
 
       for (size_t n = 0; n < overlap; n++) {
         sum += x[n] * y[n + lag];
