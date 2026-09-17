@@ -45,6 +45,10 @@ public:
    * @param size Actual size to use (must be <= MaxSize)
    */
   void Init(size_t size = MaxSize) {
+    // A zero size is not a usable buffer: Write() would evaluate `% size_`
+    // and trap. Clamp into [1, MaxSize] rather than leave the object armed.
+    if (size == 0)
+      size = 1;
     size_ = (size <= MaxSize) ? size : MaxSize;
     write_ptr_ = 0;
     Clear();
@@ -83,7 +87,16 @@ public:
    * @return Interpolated sample
    */
   inline T ReadInterpolated(float delay_samples) const {
-    if (delay_samples < 0.0f)
+    // A one-sample buffer has nothing to interpolate between, and the
+    // size_ - 2 below would underflow to SIZE_MAX, whose float value the cast
+    // cannot represent. Init() clamps the size to at least 1, not 2.
+    if (size_ < 2)
+      return Read(0);
+
+    // Establish the domain before the cast. `delay_samples < 0.0f` is false
+    // for a NaN, so the original test let one through to a conversion that is
+    // undefined; writing the guard as a negated non-negative test catches it.
+    if (!(delay_samples >= 0.0f))
       delay_samples = 0.0f;
     if (delay_samples >= static_cast<float>(size_ - 1))
       delay_samples = static_cast<float>(size_ - 2);
@@ -103,7 +116,15 @@ public:
    * @return Interpolated sample (cubic Hermite)
    */
   inline T ReadCubic(float delay_samples) const {
-    if (delay_samples < 1.0f)
+    // The four-point stencil below reaches one sample below delay_int and two
+    // above, so it needs at least four samples to stay inside the buffer and
+    // mean anything. Below that, size_ - 2 and size_ - 3 underflow as well.
+    if (size_ < 4)
+      return ReadInterpolated(delay_samples);
+
+    // Same domain problem as ReadInterpolated: a NaN fails `< 1.0f` and
+    // reaches the cast.
+    if (!(delay_samples >= 1.0f))
       delay_samples = 1.0f;
     if (delay_samples >= static_cast<float>(size_ - 2))
       delay_samples = static_cast<float>(size_ - 3);
@@ -175,16 +196,52 @@ public:
     }
   }
 
+  // This class owns a raw allocation. The compiler-generated copy operations
+  // would give two owners of one buffer and double-free on the second
+  // destruction, so copying is disabled; moving transfers ownership.
+  DynamicCircularBuffer(const DynamicCircularBuffer &) = delete;
+  DynamicCircularBuffer &operator=(const DynamicCircularBuffer &) = delete;
+
+  DynamicCircularBuffer(DynamicCircularBuffer &&other) noexcept
+      : buffer_(other.buffer_), write_ptr_(other.write_ptr_),
+        size_(other.size_) {
+    other.buffer_ = nullptr;
+    other.write_ptr_ = 0;
+    other.size_ = 0;
+  }
+
+  DynamicCircularBuffer &operator=(DynamicCircularBuffer &&other) noexcept {
+    if (this != &other) {
+      delete[] buffer_;
+      buffer_ = other.buffer_;
+      write_ptr_ = other.write_ptr_;
+      size_ = other.size_;
+      other.buffer_ = nullptr;
+      other.write_ptr_ = 0;
+      other.size_ = 0;
+    }
+    return *this;
+  }
+
   /**
    * @brief Initialize with specified size
-   * @param size Buffer size in samples
+   * @param size Buffer size in samples; a zero size is clamped to 1
    */
   void Init(size_t size) {
-    if (buffer_ != nullptr)
-      delete[] buffer_;
+    // A zero size allocates nothing while leaving the object usable, so the
+    // first Write() stores through buffer_[0] before it reaches the modulo.
+    // That write is out of bounds, and a guard on the modulo alone misses it.
+    const size_t requested = (size == 0) ? 1 : size;
 
-    size_ = size;
-    buffer_ = new T[size_];
+    // Allocate before freeing and before updating size_. Deleting first would
+    // leave buffer_ dangling if the new[] threw - the destructor would then
+    // free it a second time - and assigning size_ first would leave the object
+    // claiming a capacity it does not own. This order leaves the previous
+    // buffer intact and the object consistent when the allocation fails.
+    T *replacement = new T[requested];
+    delete[] buffer_;
+    buffer_ = replacement;
+    size_ = requested;
     write_ptr_ = 0;
     Clear();
   }
@@ -208,7 +265,16 @@ public:
   }
 
   inline T ReadInterpolated(float delay_samples) const {
-    if (delay_samples < 0.0f)
+    // A one-sample buffer has nothing to interpolate between, and the
+    // size_ - 2 below would underflow to SIZE_MAX, whose float value the cast
+    // cannot represent. Init() clamps the size to at least 1, not 2.
+    if (size_ < 2)
+      return Read(0);
+
+    // Establish the domain before the cast. `delay_samples < 0.0f` is false
+    // for a NaN, so the original test let one through to a conversion that is
+    // undefined; writing the guard as a negated non-negative test catches it.
+    if (!(delay_samples >= 0.0f))
       delay_samples = 0.0f;
     if (delay_samples >= static_cast<float>(size_ - 1))
       delay_samples = static_cast<float>(size_ - 2);

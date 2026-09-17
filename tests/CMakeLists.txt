@@ -50,6 +50,8 @@ set(TEST_SOURCES
     # Effects (Phase 2 - Track A Sync 3) - TODO: implement these
     # test_fdn_reverb.cpp
     # test_sola.cpp
+    # Memory-safety regressions (port audit work-order items 1-4)
+    test_memory_safety.cpp
 )
 
 # Existing aggregate suite. Kept intact so legacy failures remain visible.

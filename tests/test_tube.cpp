@@ -2,6 +2,7 @@
 // Tests initialization, parameter setting, and basic processing
 
 #include "effects/tube.h"
+#include <cmath>
 #include <gtest/gtest.h>
 
 
