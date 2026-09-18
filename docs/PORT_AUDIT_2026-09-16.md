@@ -5,6 +5,15 @@
 (`DAFX-MATLAB/`) and, where no `.m` exists, against the DAFX book (Zölzer, 2nd ed.).
 **Method:** line-by-line comparison plus executed numerical cross-checks. Every
 `VERIFIED` finding below was reproduced by running code, not by reading alone.
+**Audited baseline:** `1f52f7ca4bb6568707de40793e40165a66a6ed60` (the `main`
+revision at audit start).
+**Current-main refresh:** `88a9ff79a781372be8187de528a727290d155eac`, the merge of
+PR #10 on 2026-09-17, inspected on 2026-09-18.
+
+Unless a paragraph is explicitly marked **CURRENT MAIN**, source line numbers, executed
+measurements, and defect verdicts below describe the audited baseline. This document is a
+historical diagnosis plus a repair-status ledger; it must not be read as claiming that
+later `main` still contains every baseline defect.
 
 ## Evidence labels
 
@@ -15,6 +24,24 @@
 | `PROPOSED` | suggested fix, not implemented or tested here |
 | `UNVERIFIED` | read-level observation only |
 
+### Current-main repair delta after PR #10
+
+**CURRENT MAIN — source-inspected, tests not rerun in this refresh.** PR #10 merged the
+stock-GCC build repair and the memory-safety/public-domain portion of work-order items
+1–5. Current source now contains the Vibrato ownership/bounds fixes, comb fractional-delay
+initialisation and guards, circular-buffer ownership/zero-size/interpolation-domain guards,
+the CrosstalkCanceller HRIR zero-initialisation plus `HRIR_LENGTH <= 256` bound, and the
+CrossCorrelation lag bound. It does **not** close the correctness defects deliberately left
+out of PR #10: Vibrato LFO/interpolation behaviour, the comb filter/preset defects,
+`CircularBuffer::Read(0)` semantics, CrosstalkCanceller `fftshift`/finite-filter/
+linear-convolution/overlap-add correctness, or CrossCorrelation normalisation.
+
+PR #10 records a stock build with 188 unit tests and 10 pedal-harness tests passing, plus a
+sanitizer run. This refresh did not rerun those commands, and GitHub reports no status
+checks or workflow run on merge commit `88a9ff7`; treat the recorded run as PR #10
+evidence, not as a new execution by this audit refresh. The 151/151 discussion below is
+therefore intentionally baseline history.
+
 Host-side numerical agreement does **not** establish target timing, audio quality,
 electrical or product readiness.
 
@@ -22,7 +49,8 @@ electrical or product readiness.
 
 ## 1. Headline
 
-The port is **not** in the state the repository claims. `CHECKPOINT.md` marks 10/10
+At audited baseline `1f52f7ca`, the port was **not** in the state the repository
+claimed. `CHECKPOINT.md` marks 10/10
 Phase-1 effects and the Phase-2 set as complete with "Validate output matches MATLAB
 reference within tolerance" in the porting checklist, and `tests/` reports **151/151
 passing**. Both statements are true and both are misleading: the test suite contains
@@ -37,9 +65,10 @@ built through a compiler wrapper that force-included `<cmath>` and disabled `-We
 exec /usr/bin/g++ "$@" -include cmath -Wno-error
 ```
 
-The pass count is real and the measurements taken from that build stand. What it does
-**not** establish is that the repository's GCC configuration works — it does not, which is
-finding 4.1. An earlier revision of this line said only "built with GCC 12 and executed",
+The pass count is real and the measurements taken from that build stand. What it did
+**not** establish at the audited baseline is that the repository's GCC configuration
+worked — it did not, which is finding 4.1. **CURRENT MAIN:** PR #10 repaired that build
+failure; this paragraph remains the record of how the baseline audit execution was obtained. An earlier revision of this line said only "built with GCC 12 and executed",
 which reads as validation of the stock configuration and was the single worst claim in this
 document: a green number obtained by bypassing the checks, published under a `VERIFIED`
 label, in an audit whose thesis is that the repository's own green numbers are not backed
@@ -379,10 +408,21 @@ either fix `Read(0)` to mean what it documents — the newest sample — or rais
 Clamping only the caller-facing delay leaves this in place. Found by the Codex review on
 PR #9.
 
-`PROPOSED`: clamp the lower bound to `1.0f` and document the domain — **in both classes** —
-raise `ReadCubic`'s clamp to `2.0f` or repair `Read(0)` outright, delete or implement
-`DynamicCircularBuffer`'s copy and move operations, and reject or clamp a zero `size` in
-both `Init()` bodies rather than documenting a precondition callers cannot see.
+`PROPOSED AT BASELINE`: establish the interpolation-specific domain explicitly, not merely
+a nonzero buffer size. Linear interpolation needs at least two samples; the four-point
+cubic stencil needs at least four. An implementation may reject an undersized
+configuration for the requested interpolation or define a safe fallback, but accepting
+`Init(1)` and then evaluating `size_ - 2` (or accepting fewer than four samples for the
+cubic stencil) is undefined. In both classes, also document the lower delay domain, repair
+`Read(0)` outright or keep the cubic stencil away from it, implement/delete owning copy
+operations, and reject or clamp zero-size initialisation.
+
+**CURRENT MAIN:** PR #10 chose the defined-fallback route rather than rejecting small
+buffers: `ReadInterpolated()` falls back to `Read(0)` when `size_ < 2`;
+`ReadCubic()` falls back to linear interpolation when `size_ < 4`, and the readers
+guard non-finite delays before integer conversion. The memory-safety finding is therefore
+closed on current main. The separate `Read(0)` semantic off-by-one remains open and is
+still work-order item 20.
 
 ### 2.7 `SimpleHRIR` — the ITD carries no left/right information
 
@@ -1273,19 +1313,29 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 
 ## 5. Recommended order of work
 
+**CURRENT MAIN status note (2026-09-18):** PR #10 landed the stock-build repair and the
+safety/public-domain parts of items 1–5. The list below is retained as the audit's
+dependency order, with current status called out where it changed. PR #10 intentionally did
+not repair the remaining DSP-correctness findings in the same modules.
+
 **Memory safety first**, because it corrupts silently on a target with no MMU:
 
-1. `Vibrato` — all four of its memory-safety defects first (2.15): the `SetWidth` heap
+1. **[MERGED in PR #10 — memory-safety portion]** `Vibrato` — all four of its
+   memory-safety defects first (2.15): the `SetWidth` heap
    overflow, the uninitialised `delay_line_` that the destructor reads and may `delete[]`
    on a never-`Init`-ed instance, the missing copy/move handling that makes copying an
    initialised instance a double free, and the leak on every re-`Init` that the existing
    `DifferentSampleRates` test already triggers. The four are independent — fixing the
    constructor and the rule of three still leaves `Init()` leaking. Only then the LFO phase
    and the interpolation taps, which are correctness rather than safety.
-2. `LPIIRComb` and `UniversalComb` — initialise `delay_frac_` in both constructors and
-   both `Init()` bodies (2.21). Four lines, and it closes a NaN-to-`size_t` index on a
-   documented public path.
-3. `CircularBuffer` and `DynamicCircularBuffer` — the two memory faults in the header
+2. **[MERGED in PR #10 — safety initialisation/guards]** `LPIIRComb` and
+   `UniversalComb` — initialise `delay_frac_` to a valid configured delay in each
+   constructor and guard every float-to-index path (2.21). PR #10 deliberately leaves
+   `delay_frac_` unchanged in `Init()`: an earlier repair wrote the integer delay back
+   there and silently truncated configured fractional values such as 64.75 to 64.00.
+   Constructor initialisation removes the indeterminacy without that lossy reset.
+3. **[MERGED in PR #10 — ownership, zero-size and interpolation-domain safety]**
+   `CircularBuffer` and `DynamicCircularBuffer` — the two memory faults in the header
    (2.6). Delete or implement `DynamicCircularBuffer`'s copy and move operations: it owns a
    raw allocation with a destructor and no rule of three, so copying one is a double free on
    a public path. Then reject or clamp a zero `size` in **both** `Init()` bodies; today
@@ -1293,27 +1343,28 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
    fixed-size class, and in the dynamic class an out-of-bounds heap write that lands
    *before* the modulo, so guarding only the modulo does not fix it. The `Read()` domain
    clamp is item 20; this step is the memory safety alone.
-4. `CrosstalkCanceller` — five defects, in this order (2.9). First bound `HRIR_LENGTH`:
-   above 256 the module reads past `left_time` on the first block, because `FFT_SIZE` is
-   hard-coded to 512 independently of the template parameter. Either derive `FFT_SIZE` from
-   `HRIR_LENGTH` or `static_assert(HRIR_LENGTH <= 256)`. Second, zero the full HRIR buffer:
-   112 indeterminate floats currently reach the FFT, so the module's output is
-   nondeterministic and every other fix to it is unmeasurable until this is done. Third,
-   size the transform for the filter actually computed — the inverse is a full 512-sample
-   response (32.9 % of its energy beyond sample 255), so a 256-sample block needs 767
-   points, and **fixing the overlap-add scheduling alone leaves the wrap in place**; this
-   step is a documented truncation of the inverse followed by a transform sized for it, or
-   a partitioned convolution — **not** simply a larger `FFT_SIZE`, which lengthens the
-   inverse by the same amount it lengthens the transform. It subsumes the first fix. Only then the overlap-add, which folds each transform's tail onto
-   its own head, and last the missing `fftshift`, which cannot be assessed until the rest
-   holds.
+4. **[PARTIAL in PR #10 — first two safety prerequisites only]**
+   `CrosstalkCanceller` — five defects, in this order (2.9). First bound
+   `HRIR_LENGTH`: above 256 the baseline module reads past `left_time` on the first
+   block because `FFT_SIZE` is hard-coded to 512 independently of the template parameter;
+   PR #10 added `static_assert(HRIR_LENGTH <= 256)`. Second, zero the full HRIR buffer;
+   PR #10 also landed this, removing the 112 indeterminate floats that otherwise enter the
+   FFT at 48 kHz. **Third, apply `fftshift` to the full inverse response before any
+   truncation.** The regularised inverse is acausal/wrapped in the raw IFFT ordering, so
+   truncating first selects the wrong taps. **Fourth, after the shift, choose and document a
+   finite FIR length `L`, truncate that centred response, then size linear convolution for
+   that fixed `L`** (`L + HRIR_LENGTH - 1`, rounded up) or use partitioned
+   convolution. Merely increasing the same `FFT_SIZE` used both to design the inverse and
+   convolve it is not a solution because the inverse grows with the transform. **Fifth, fix
+   the overlap-add scheduling** so the filter tail is carried to the next block rather than
+   folded onto the current block. The shift must precede truncation and convolution sizing;
+   shifting an already truncated filter does not recover the intended regularised inverse.
 
-5. `CrossCorrelation` — bound the lag range (2.20). `Compute()` and
-   `ComputeNormalized()` both evaluate `length - lag` unconditionally, so any
-   `max_lag >= length + 2` underflows `size_t` and the inner loop walks off the end of both
-   inputs. Computing the overlap as `(lag < length) ? length - lag : 0` fixes it and makes
-   non-overlapping lags correlate to zero. The normalisation bias in the same file is a
-   separate, later item.
+5. **[MERGED in PR #10 — lag-range safety only]** `CrossCorrelation` — at the
+   audited baseline, `Compute()` and `ComputeNormalized()` evaluated `length - lag`
+   unconditionally, so `max_lag >= length + 2` could underflow `size_t` and walk off the
+   inputs. PR #10 now computes zero overlap once `lag >= length`. The normalisation bias in
+   the same file is a separate correctness issue and remains item 21.
 
 **Then the one-line fixes**, which buy the most correctness per unit of risk:
 
@@ -1398,9 +1449,10 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 **Then the process problems, which are what let all of the above ship:**
 
 25. Restore the nine excluded test files to the build (1a) and fix what turns red.
-26. Fix the GCC build (4.1), then add `unit_tests` to the CI build targets and drop
-    `continue-on-error: true` from `legacy-regression` (1d). Until both are done, no
-    amount of test-writing changes what CI reports.
+26. **[GCC build MERGED in PR #10; CI gate still open]** Add `unit_tests` to the CI
+    build targets and drop `continue-on-error: true` from `legacy-regression` (1d).
+    Until both CI changes are done, test-writing still does not make the aggregate suite a
+    required GitHub gate.
 27. **Replace the smoke tests with reference comparisons.** Every defect in this audit was
     found by comparing against MATLAB; none by the existing 151 tests. The cheapest
     durable fix is a golden-vector harness: for each module, store a short input and the
@@ -1412,6 +1464,13 @@ the script. `UNVERIFIED` as to the book's printed text; `DERIVED` from the file.
 Record these in `dafx_bugs.md` **before** anyone writes bit-exactness tests, or the tests
 will be written against the wrong target:
 
+- `noisegt.m` can read `g(i-1)` at the first MATLAB sample (`i = 1`), i.e.
+  `g(0)`, which is an invalid MATLAB index. This occurs whenever the first envelope
+  sample does not take the below-threshold startup branch and instead enters either the
+  above-threshold branch or the final hold-state branch. The script aborts rather than
+  defining an expected first-sample gain, so a golden-vector harness must first specify the
+  intended previous-gain initial condition instead of treating the script's failure as a
+  C++ mismatch. `DERIVED` from the reference control flow.
 - `lpiircomb.m:21` assigns `xhhold` where every other line uses `xhold`, so that variable
   stays 0 for the whole run. The C++ implements the intended equation. `DERIVED`.
 - `TimeScaleSOLA.m:46` applies the `xcorr` lag with an inverted sign. Negating it measures
