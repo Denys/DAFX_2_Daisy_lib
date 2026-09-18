@@ -57,11 +57,18 @@ All 10 Phase 1 effects meet or exceed the performance budgets defined in the Pha
 
 | Effect | CPU Usage | RAM Usage | Status |
 |--------|-----------|-----------|--------|
-| **Vibrato** | 6.2% | 24 KB | ✅ Pass |
+| **Vibrato** | 6.2% | 11.3 KB (default) | ✅ Pass |
 | **Ring Modulator** | 1.1% | 16 bytes | ✅ Pass |
 
 **Notes:**
-- Vibrato delay line sized for maximum 100ms delay
+- Vibrato reserves its delay line once, at `Init()`, for a caller-chosen
+  maximum width. The default reservation is 20 ms: `2 + 3 * width * fs`
+  floats, so 2882 floats (11.3 KB) at 48 kHz and 5762 floats (22.5 KB) at
+  96 kHz. Reserving the full 100 ms the API accepts would be 57.6 KB at
+  48 kHz and about 115 KB at 96 kHz, past the < 50 KB per-effect target in
+  `README.md`. The RAM figures here are derived from that formula, not
+  measured on target; the CPU figures in this table predate this note and
+  were not re-measured.
 - Linear interpolation used for sub-sample accuracy
 - Ring mod uses direct sinusoidal multiplication
 

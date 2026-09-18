@@ -28,7 +28,7 @@ int main() {
   vibrato.SetFrequency(5.0f); // 5 Hz modulation rate
   vibrato.SetWidth(0.003f);   // 3 ms depth
 
-  RingMod ringmod;
+  RingModulator ringmod;
   ringmod.Init(SAMPLE_RATE);
   ringmod.SetFrequency(50.0f); // 50 Hz carrier for bell-like tone
 
@@ -89,6 +89,8 @@ int main() {
   std::cout << "  Peak Right: " << peak_right << std::endl;
   std::cout << "  Stereo Output: " << BUFFER_SIZE << " samples per channel"
             << std::endl;
+  std::cout << "  Last Frame:  L = " << left_buffer[BUFFER_SIZE - 1]
+            << ", R = " << right_buffer[BUFFER_SIZE - 1] << std::endl;
 
   return 0;
 }

@@ -44,7 +44,7 @@ template <size_t N = 1024> class Robotization {
 public:
   static_assert((N & (N - 1)) == 0, "FFT size must be power of 2");
 
-  Robotization() : initialized_(false), hop_size_(N / 4), mix_(1.0f) {}
+  Robotization() : hop_size_(N / 4), mix_(1.0f), initialized_(false) {}
 
   /**
    * @brief Initialize the robotization effect

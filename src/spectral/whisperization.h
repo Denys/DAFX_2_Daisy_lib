@@ -51,7 +51,7 @@ public:
   static_assert((N & (N - 1)) == 0, "FFT size must be power of 2");
 
   Whisperization()
-      : initialized_(false), hop_size_(N / 8), mix_(1.0f), rand_seed_(12345) {}
+      : hop_size_(N / 8), mix_(1.0f), rand_seed_(12345), initialized_(false) {}
 
   /**
    * @brief Initialize the whisperization effect
