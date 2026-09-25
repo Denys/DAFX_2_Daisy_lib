@@ -17,6 +17,110 @@ y   = Dry*x + Wet*(g1*tap1 + g2*tap2),  g = [1 0] | [1 1] | 0.5*[1 1]
 SERIES feedback per engine: f = 1 - sqrt(1 - k)   (contract section 6)
 ```
 
+## Quick start (how to use the model)
+
+Tested with MATLAB R2024a + Simulink on Windows. Steps 1, 2, 5 and 6 also run in GNU
+Octave ≥ 8. Steps 3–4 need Simulink.
+
+**1. Open the folder.** Start MATLAB and go to this folder:
+
+```matlab
+cd('C:/path/to/DAFX_2_Daisy_lib/matlab/multidelay_digi')
+```
+
+**2. Check that everything works** (about 1–2 minutes). The last line must read
+`MDD_TESTS PASS ...`. T9 prints `SKIP` until the C++ parity files exist (see "Commands").
+
+```matlab
+cd tests; run_mdd_tests; cd ..
+```
+
+**3. See the block diagram.** This builds `mdd_digi_topology.slx` in this folder,
+refreshes the four pictures in `docs/slx_export/` and checks the diagram against the
+MATLAB code (about 2 minutes):
+
+```matlab
+build_mdd_digi_slx(mdd_default_params(), 'ExportSvg', true);
+open_system('mdd_digi_topology')
+```
+
+Double-click a coloured block to look inside. Press **Run**, then double-click **Scope**
+to see the impulse response (a click followed by its echoes).
+
+**4. Try another configuration in Simulink.** Rebuild the model from different front-panel
+settings (table below), then press **Run**:
+
+```matlab
+p = mdd_default_params(); c = p.Ctl;
+c.Config = 3;                          % 1 SINGLE, 2 DUAL SERIES, 3 DUAL PARALLEL
+p = mdd_controls_to_params(c, p);
+build_mdd_digi_slx(p, 'ExportSvg', false); open_system('mdd_digi_topology')
+```
+
+Use `'ExportSvg', false` here so the committed pictures keep the default settings.
+
+**5. Listen to your own guitar through the DIGI.** Any WAV file works (mono or stereo,
+any sample rate). A few seconds of silence are added so the echoes can ring out. Processing
+takes about 1 s per 5 s of audio.
+
+```matlab
+[x, fs] = audioread('my_guitar.wav');
+x = mean(x, 2);                        % the model is mono
+x = [x; zeros(3 * fs, 1)];             % room for the echo tail
+p = mdd_default_params();
+p.Fs = fs;                             % set the sample rate first
+c = p.Ctl;
+c.Config = 2;                          % 1 SINGLE, 2 DUAL SERIES, 3 DUAL PARALLEL
+c.Time = 0.6;                          % 0 ... 1  ->  20 ms ... 2.5 s
+c.RatioIndex = 6;                      % E2 time = 1/4 1/3 3/8 1/2 2/3 3/4 1 of E1 (index 1 ... 7)
+c.Feedback = 0.5;                      % 0 ... 1  ->  repeats; 1 = the 0.95 maximum
+c.Color = 0.3;                         % 0 = bright ... 1 = dark (2 kHz)
+c.Mix = 0.5;                           % 0 = dry only ... 1 = full echo level
+p = mdd_controls_to_params(c, p);
+st = mdd_init_state(p);
+[y, st] = mdd_process_block(x, p, st);
+y = double(y);
+y = y / max(1, max(abs(y)));           % keep the file from clipping
+audiowrite('my_guitar_digi.wav', y, fs);
+sound(y, fs)
+```
+
+`st.diag.clipped_samples` counts the output samples above full scale before that last
+safety scaling. High feedback on loud input can clip; the model reports it and does not
+hide it.
+
+**6. Move a knob while playing.** Settings are read once per block of 48 samples, as on
+the pedal. This sweeps TIME from 0.4 to 0.7 across the file:
+
+```matlab
+p = mdd_default_params(); p.Fs = fs; c = p.Ctl;
+st = mdd_init_state(p); y = zeros(size(x), 'single'); B = p.BlockSize;
+for i0 = 1:B:numel(x)
+  i1 = min(i0 + B - 1, numel(x));
+  c.Time = 0.4 + 0.3 * i0 / numel(x);
+  p = mdd_controls_to_params(c, p);
+  [y(i0:i1), st] = mdd_process_block(x(i0:i1), p, st);
+end
+```
+
+The delay time jumps from block to block, as on main. For smooth pitch-bending sweeps, set
+`p.TimeSmoothMs = 20` and `p.Reader = 'linear'` before the loop.
+
+### Front-panel settings (`p.Ctl`, contract v1 section 5)
+
+| Field | Range | Meaning |
+|---|---|---|
+| `Config` | 1, 2, 3 | `SINGLE`, `DUAL SERIES` (E2 repeats E1's echoes), `DUAL PARALLEL` (both engines hear the guitar) |
+| `Time` | 0 … 1 | E1 delay, 20 ms … 2.5 s (log taper) |
+| `RatioIndex` | 1 … 7 | E2 delay as a fraction of E1: 1/4, 1/3, 3/8, 1/2, 2/3, 3/4 (default), 1 (`SHIFT`+`TIME`) |
+| `Feedback` | 0 … 1 | number of repeats; 1 = the 0.95 maximum. In `DUAL SERIES` it is reduced automatically so the echoes do not build up |
+| `FeedbackE2` | `NaN` or 0 … 1 | `NaN` = same as `Feedback`; a number sets E2 on its own (`SHIFT`+`FEEDBACK`) |
+| `Color` | 0 … 1 | tone of the repeats: 0 = no low-pass, 1 = low-pass at 2 kHz; a 40 Hz high-pass is always on |
+| `Mix` | 0 … 1 | echo level; the dry guitar always stays at full level |
+
+Always pass the settings through `mdd_controls_to_params`. It turns them into the engine
+values (`p.E(1)`, `p.E(2)`, `p.Dry`, `p.Wet`) exactly as the contract specifies.
+
 ## Files
 
 | File | Role |
