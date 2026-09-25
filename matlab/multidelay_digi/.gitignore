@@ -1,0 +1,5 @@
+fixtures_out/
+*.slx
+*.slxc
+slprj/
+*.asv
